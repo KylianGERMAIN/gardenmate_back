@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 
@@ -9,7 +9,7 @@ app.use(cors());
 app.use(express.json());
 
 // Route test
-app.get("/", (_, res) => {
+app.get("/", (req: Request, res: Response) => {
     res.json({ message: "API GardenMate Backend 🚀" });
 });
 
