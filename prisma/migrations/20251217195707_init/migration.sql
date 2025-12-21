@@ -6,3 +6,6 @@ CREATE TABLE "Plant" (
 
     CONSTRAINT "Plant_pkey" PRIMARY KEY ("id")
 );
+
+CREATE UNIQUE INDEX "Plant_name_key" ON "Plant"("name");
+
