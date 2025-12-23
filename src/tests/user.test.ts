@@ -1,12 +1,11 @@
-import { prisma } from '../src/prisma';
-import { CreateUserDTO, createUser, validateUserInput } from '../src/service/user.service';
-import { CustomError } from '../src/errors/CustomError';
+import { prisma } from '../prisma';
+import { CreateUserDTO, createUser, validateUserInput } from '../service/user.service';
+import { CustomError } from '../errors/CustomError';
 
 describe('User service', () => {
   let testLogin: string;
 
   beforeEach(() => {
-    // Génère un login unique pour chaque test
     testLogin = `testuser_${Date.now()}`;
   });
 
