@@ -1,23 +1,24 @@
-version: "3"
+version: '3'
 services:
-    backend:
-        build: .
-        ports:
-            - "5001:5000"
-        volumes:
-            - .:/app
-        depends_on:
-            - db
-    db:
-        image: postgres:15
-        environment:
-            POSTGRES_USER: garden
-            POSTGRES_PASSWORD: secret
-            POSTGRES_DB: gardenmate
-        ports:
-            - "5433:5432"
-        volumes:
-            - db_data:/var/lib/postgresql/data
+  backend:
+    build: .
+    env_file: .env.docker
+    ports:
+      - '5001:5000'
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: garden
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: gardenmate
+    ports:
+      - '5433:5432'
+    volumes:
+      - db_data:/var/lib/postgresql/data
 
 volumes:
-    db_data:
+  db_data:

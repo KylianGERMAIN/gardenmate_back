@@ -13,7 +13,7 @@ module.exports = [
       prettier,
     },
     rules: {
-      'no-console': 'error',
+      'no-console': ['error', { allow: ['warn', 'error'] }],
       '@typescript-eslint/no-explicit-any': 'error',
       'prettier/prettier': 'error',
     },
