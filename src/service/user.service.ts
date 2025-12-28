@@ -17,7 +17,10 @@ export interface GetUserDTO {
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
-export function validateUserInput(user: CreateUserDTO) {
+/**
+ * Validate user input
+ */
+function validateUserInput(user: CreateUserDTO) {
   if (!user.login || !user.password) {
     throw new CustomError('Login and password are required');
   }
@@ -31,7 +34,10 @@ export function validateUserInput(user: CreateUserDTO) {
   }
 }
 
-export async function createUser(user: CreateUserDTO) {
+/**
+ * Create a new user
+ */
+async function createUser(user: CreateUserDTO) {
   validateUserInput(user);
 
   const existingUser = await prisma.user.findUnique({
@@ -53,7 +59,10 @@ export async function createUser(user: CreateUserDTO) {
   });
 }
 
-export async function getUser(userId: number): Promise<GetUserDTO> {
+/**
+ * Get a user by ID
+ */
+async function getUser(userId: number): Promise<GetUserDTO> {
   const existingUser = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -69,3 +78,36 @@ export async function getUser(userId: number): Promise<GetUserDTO> {
 
   return existingUser;
 }
+
+/**
+ * Delete a user by ID
+ */
+async function deleteUser(userId: number): Promise<GetUserDTO> {
+  const existingUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      login: true,
+      role: true,
+    },
+  });
+
+  if (!existingUser) {
+    throw new CustomError(`The user with id '${userId}' doesn't exist`, 404);
+  }
+
+  await prisma.user.delete({
+    where: {
+      id: userId,
+    },
+  });
+
+  return existingUser;
+}
+
+export const userService = {
+  createUser,
+  getUser,
+  deleteUser,
+  validateUserInput,
+};
