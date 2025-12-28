@@ -9,6 +9,12 @@ export interface CreateUserDTO {
   role: UserRole;
 }
 
+export interface GetUserDTO {
+  id: number;
+  login: string;
+  role: UserRole;
+}
+
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
 export function validateUserInput(user: CreateUserDTO) {
@@ -45,4 +51,21 @@ export async function createUser(user: CreateUserDTO) {
       role: 'USER',
     },
   });
+}
+
+export async function getUser(userId: number): Promise<GetUserDTO> {
+  const existingUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      login: true,
+      role: true,
+    },
+  });
+
+  if (!existingUser) {
+    throw new CustomError(`The user with id '${userId}' doesn't exist`, 404);
+  }
+
+  return existingUser;
 }

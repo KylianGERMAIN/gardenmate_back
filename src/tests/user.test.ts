@@ -1,5 +1,5 @@
 import { prisma } from '../prisma';
-import { CreateUserDTO, createUser, validateUserInput } from '../service/user.service';
+import { CreateUserDTO, createUser, getUser, validateUserInput } from '../service/user.service';
 import { CustomError } from '../errors/CustomError';
 
 describe('User service', () => {
@@ -55,5 +55,28 @@ describe('User service', () => {
     await createUser(user);
 
     await expect(createUser(user)).rejects.toThrow(CustomError);
+  });
+
+  it('should return user if it exists', async () => {
+    const user: CreateUserDTO = { login: testLogin, password: 'Admin123*', role: 'USER' };
+    await createUser(user);
+
+    const dbUser = await prisma.user.findUnique({ where: { login: testLogin } });
+    expect(dbUser).not.toBeNull();
+
+    const result = await getUser(dbUser!.id);
+
+    expect(result).toEqual({
+      id: dbUser!.id,
+      login: testLogin,
+      role: 'USER',
+    });
+  });
+
+  it('should throw CustomError if user does not exist', async () => {
+    await expect(getUser(999999)).rejects.toThrow(CustomError);
+    await expect(getUser(999999)).rejects.toMatchObject({
+      code: 404,
+    });
   });
 });
