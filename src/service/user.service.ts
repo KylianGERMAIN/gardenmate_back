@@ -1,5 +1,6 @@
 import { CustomError } from '../errors/CustomError';
 import { UserRole } from '../generated/prisma/enums';
+import { JwtPayload } from '../middleware/auth';
 import { prisma } from '../prisma';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
@@ -138,7 +139,7 @@ async function authenticateUser(user: LoginUserDTO): Promise<string> {
   }
 
   return jwt.sign(
-    { id: existingUser.id, login: existingUser.login, role: existingUser.role },
+    { id: existingUser.id, login: existingUser.login, role: existingUser.role } as JwtPayload,
     JWT_SECRET,
     {
       expiresIn: '1h',
