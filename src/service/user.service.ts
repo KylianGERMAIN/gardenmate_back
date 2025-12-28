@@ -2,6 +2,7 @@ import { CustomError } from '../errors/CustomError';
 import { UserRole } from '../generated/prisma/enums';
 import { prisma } from '../prisma';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 export interface CreateUserDTO {
   login: string;
@@ -13,6 +14,11 @@ export interface GetUserDTO {
   id: number;
   login: string;
   role: UserRole;
+}
+
+export interface LoginUserDTO {
+  login: string;
+  password: string;
 }
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
@@ -105,9 +111,45 @@ async function deleteUser(userId: number): Promise<GetUserDTO> {
   return existingUser;
 }
 
+/**
+ * Delete a user by ID
+ */
+async function authenticateUser(user: LoginUserDTO): Promise<string> {
+  if (!user.login || !user.password) {
+    throw new CustomError('Login and password are required', 400);
+  }
+
+  const existingUser = await prisma.user.findUnique({
+    where: { login: user.login },
+  });
+  const JWT_SECRET = process.env.JWT_SECRET;
+
+  if (!existingUser) {
+    throw new CustomError(`The user with login '${user.login}' doesn't exist`, 404);
+  }
+
+  const isPasswordValid = await bcrypt.compare(user.password, existingUser.password);
+  if (!isPasswordValid) {
+    throw new CustomError('Invalid password', 401);
+  }
+
+  if (!JWT_SECRET) {
+    throw new CustomError('JWT secret is not defined', 500);
+  }
+
+  return jwt.sign(
+    { id: existingUser.id, login: existingUser.login, role: existingUser.role },
+    JWT_SECRET,
+    {
+      expiresIn: '1h',
+    },
+  );
+}
+
 export const userService = {
   createUser,
   getUser,
   deleteUser,
+  authenticateUser,
   validateUserInput,
 };
