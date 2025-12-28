@@ -17,11 +17,21 @@ model Plant {
   id            Int      @id @default(autoincrement())
   name          String   @unique
   sunlightLevel String   // exemple: "plein soleil", "mi-ombre", "ombre"
+
+  @@map("plants")
+}
+
+// Enum pour les rôles
+enum UserRole {
+  ADMIN
+  USER
 }
 
 model User {
   id            Int      @id @default(autoincrement())
   login         String   @unique
   password      String
-  role          String   // exemple: "ADMIN", "USER"
+  role          UserRole
+
+  @@map("users")
 }

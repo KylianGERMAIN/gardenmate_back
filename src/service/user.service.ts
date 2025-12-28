@@ -1,9 +1,18 @@
 import { CustomError } from '../errors/CustomError';
+import { UserRole } from '../generated/prisma/enums';
 import { prisma } from '../prisma';
+import bcrypt from 'bcrypt';
 
 export interface CreateUserDTO {
   login: string;
   password: string;
+  role: UserRole;
+}
+
+export interface GetUserDTO {
+  id: number;
+  login: string;
+  role: UserRole;
 }
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
@@ -33,11 +42,30 @@ export async function createUser(user: CreateUserDTO) {
     throw new CustomError(`User with login '${user.login}' already exists`, 409);
   }
 
+  const password = await bcrypt.hash(user.password, 10);
+
   await prisma.user.create({
     data: {
       login: user.login,
-      password: user.password,
+      password: password,
       role: 'USER',
     },
   });
+}
+
+export async function getUser(userId: number): Promise<GetUserDTO> {
+  const existingUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      login: true,
+      role: true,
+    },
+  });
+
+  if (!existingUser) {
+    throw new CustomError(`The user with id '${userId}' doesn't exist`, 404);
+  }
+
+  return existingUser;
 }

@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE "Plant" (
+CREATE TABLE "plants" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "sunlightLevel" TEXT NOT NULL,
@@ -7,5 +7,5 @@ CREATE TABLE "Plant" (
     CONSTRAINT "Plant_pkey" PRIMARY KEY ("id")
 );
 
-CREATE UNIQUE INDEX "Plant_name_key" ON "Plant"("name");
+CREATE UNIQUE INDEX "Plant_name_key" ON "plants"("name");
 

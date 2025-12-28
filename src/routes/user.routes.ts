@@ -1,16 +1,32 @@
 import { Router, Request, Response } from 'express';
 import { authorize } from '../middleware/auth';
 import { UserParams } from '../interface/user';
-import { createUser, CreateUserDTO } from '../service/user.service';
+import { createUser, CreateUserDTO, getUser } from '../service/user.service';
 import { CustomError } from '../errors/CustomError';
 
 const router = Router();
 
 // GET /users/:id
-router.get('/:id', authorize(['ADMIN', 'USER']), (req: Request<UserParams>, res: Response) => {
-  const { id } = req.params;
-  res.status(200).json({ message: `User ${id} found` });
-});
+router.get(
+  '/:id',
+  authorize(['ADMIN', 'USER']),
+  async (req: Request<UserParams>, res: Response) => {
+    const { id } = req.params;
+    var user = null;
+
+    try {
+      user = await getUser(Number(id));
+    } catch (error: unknown) {
+      if (error instanceof CustomError) {
+        return res.status(error.code).json({ message: error.message });
+      } else {
+        console.error(error);
+        return res.status(500).json({ message: 'Internal server error' });
+      }
+    }
+    res.status(200).json(user);
+  },
+);
 
 // POST /users
 router.post('/', authorize(['ADMIN']), async (req: Request, res: Response) => {
