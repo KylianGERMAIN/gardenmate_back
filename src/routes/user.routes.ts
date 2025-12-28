@@ -11,11 +11,14 @@ router.get(
   '/:id',
   authorize(['ADMIN', 'USER']),
   async (req: Request<UserParams>, res: Response) => {
-    const { id } = req.params;
-    var user = null;
+    const userId = Number(req.params.id);
+    let user = null;
 
     try {
-      user = await getUser(Number(id));
+      if (Number.isNaN(userId)) {
+        return res.status(400).json({ message: 'Invalid user id' });
+      }
+      user = await getUser(userId);
     } catch (error: unknown) {
       if (error instanceof CustomError) {
         return res.status(error.code).json({ message: error.message });
