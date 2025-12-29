@@ -9,6 +9,7 @@ export interface JwtPayload {
 
 export interface RequestWithUser extends Request {
   user?: JwtPayload;
+  id?: number;
 }
 
 export const authorize =
@@ -28,8 +29,12 @@ export const authorize =
 
     try {
       const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+      const resourceOwnerId = Number(req.params.id);
 
-      if (rolesNeeded && !rolesNeeded.includes(decoded.role)) {
+      const hasRole = rolesNeeded ? rolesNeeded.includes(decoded.role) : true;
+      const isOwner = decoded.id === resourceOwnerId;
+
+      if (!hasRole && !isOwner) {
         return res.status(403).json({ message: 'Forbidden' });
       }
       req.user = decoded;

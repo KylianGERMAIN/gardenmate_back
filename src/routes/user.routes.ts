@@ -44,7 +44,7 @@ router.get('/:id', authorize(), async (req: RequestWithUser, res: Response) => {
 });
 
 // POST /users
-router.post('/', authorize(), async (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   const user: CreateUserDTO = req.body;
 
   try {
@@ -62,24 +62,29 @@ router.post('/', authorize(), async (req: Request, res: Response) => {
 });
 
 // DELETE /users/:id
-router.delete('/:id', authorize(), async (req: Request, res: Response) => {
-  const userId = Number(req.params.id);
-
-  try {
+router.delete(
+  '/:id',
+  (req: RequestWithUser, res: Response, next) => {
+    const userId = Number(req.params.id);
     if (Number.isNaN(userId)) {
       return res.status(400).json({ message: 'Invalid user id' });
     }
-    await userService.deleteUser(userId);
-  } catch (error: unknown) {
-    if (error instanceof CustomError) {
-      return res.status(error.code).json({ message: error.message });
-    } else {
-      console.error(error);
-      return res.status(500).json({ message: 'Internal server error' });
+    req.id = userId;
+    next();
+  },
+  authorize(['ADMIN']),
+  async (req: RequestWithUser, res: Response) => {
+    try {
+      await userService.deleteUser(req.id!);
+    } catch (error: unknown) {
+      if (error instanceof CustomError) {
+        return res.status(error.code).json({ message: error.message });
+      } else {
+        console.error(error);
+        return res.status(500).json({ message: 'Internal server error' });
+      }
     }
-  }
-
-  return res.status(200).json({ message: `User ${userId} deleted` });
-});
+  },
+);
 
 export default router;
