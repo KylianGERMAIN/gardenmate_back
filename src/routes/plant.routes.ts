@@ -1,8 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { authorize } from '../middleware/auth';
 import { CustomError } from '../errors/CustomError';
-import { prisma } from '../prisma';
-import { SunlightLevel } from '../generated/prisma/enums';
 import { plantService } from '../service/plant.service';
 
 const router = Router();

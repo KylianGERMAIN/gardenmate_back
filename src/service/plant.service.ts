@@ -1,6 +1,6 @@
 import { Request } from 'express';
 import { CustomError } from '../errors/CustomError';
-import { SunlightLevel, UserRole } from '../generated/prisma/enums';
+import { SunlightLevel } from '../generated/prisma/enums';
 import { prisma } from '../prisma';
 
 export interface PlantDTO {
@@ -10,9 +10,9 @@ export interface PlantDTO {
 }
 
 async function getPlants(req: Request): Promise<PlantDTO[]> {
-  const sunlightQuery = req.query.sunlightLevel as string;
+  const sunlightQuery = req.query.sunlightLevel as SunlightLevel | undefined;
 
-  if (!['FULL_SUN', 'PARTIAL_SHADE', 'SHADE'].includes(sunlightQuery)) {
+  if (sunlightQuery && !Object.values(SunlightLevel).some((value) => value === sunlightQuery)) {
     throw new CustomError('Invalid sunlightLevel', 400);
   }
   const plants = await prisma.plant.findMany({
