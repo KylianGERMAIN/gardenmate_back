@@ -58,7 +58,7 @@ async function createPlant(plant: PlantDTO): Promise<void> {
     throw new CustomError('Sunlight level is required', 400);
   }
 
-  await checkSunlightLevel(plantSunlight);
+  checkSunlightLevel(plantSunlight);
 
   if (!plantName || plantName.trim() === '') {
     throw new CustomError('Plant name cannot be empty', 400);

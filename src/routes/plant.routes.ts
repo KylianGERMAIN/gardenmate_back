@@ -28,7 +28,7 @@ router.post('/', authorize(['ADMIN']), async (req: Request, res: Response) => {
   const plant: PlantDTO = req.body;
   try {
     await plantService.createPlant(plant);
-    res.status(200).json({ message: 'Plant created successfully' });
+    res.status(201).json({ message: 'Plant created successfully' });
   } catch (error: unknown) {
     if (error instanceof CustomError) {
       return res.status(error.code).json({ message: error.message });
