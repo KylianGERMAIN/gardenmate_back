@@ -39,4 +39,23 @@ router.post('/', authorize(['ADMIN']), async (req: Request, res: Response) => {
   }
 });
 
+// DELETE /plants/:id
+router.delete('/:id', authorize(['ADMIN']), async (req: Request, res: Response) => {
+  const plantId = Number(req.params.id);
+  try {
+    if (Number.isNaN(plantId)) {
+      return res.status(400).json({ message: 'Invalid plant id' });
+    }
+    await plantService.deletePlant(plantId);
+    res.status(200).json({ message: 'Plant deleted successfully' });
+  } catch (error: unknown) {
+    if (error instanceof CustomError) {
+      return res.status(error.code).json({ message: error.message });
+    } else {
+      console.error(error);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+});
+
 export default router;

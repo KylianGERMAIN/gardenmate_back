@@ -80,7 +80,25 @@ async function createPlant(plant: PlantDTO): Promise<void> {
   });
 }
 
+/**
+ * Delete a plant by id
+ */
+async function deletePlant(plantId: number): Promise<void> {
+  const existingPlant = await prisma.plant.findUnique({
+    where: { id: plantId },
+  });
+
+  if (!existingPlant) {
+    throw new CustomError('Plant not found', 404);
+  }
+
+  await prisma.plant.delete({
+    where: { id: plantId },
+  });
+}
+
 export const plantService = {
   getPlants,
   createPlant,
+  deletePlant,
 };

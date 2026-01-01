@@ -25,13 +25,13 @@ router.post('/login', async (req: Request, res: Response) => {
 // GET /users/:id
 router.get('/:id', authorize(), async (req: RequestWithUser, res: Response) => {
   const userId = Number(req.params.id);
-  let user = null;
 
   try {
     if (Number.isNaN(userId)) {
       return res.status(400).json({ message: 'Invalid user id' });
     }
-    user = await userService.getUser(userId);
+    const user = await userService.getUser(userId);
+    res.status(200).json(user);
   } catch (error: unknown) {
     if (error instanceof CustomError) {
       return res.status(error.code).json({ message: error.message });
@@ -40,7 +40,6 @@ router.get('/:id', authorize(), async (req: RequestWithUser, res: Response) => {
       return res.status(500).json({ message: 'Internal server error' });
     }
   }
-  res.status(200).json(user);
 });
 
 // POST /users

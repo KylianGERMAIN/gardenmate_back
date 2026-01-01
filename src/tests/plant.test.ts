@@ -10,6 +10,7 @@ jest.mock('../prisma', () => ({
       findMany: jest.fn(),
       create: jest.fn(),
       findUnique: jest.fn(),
+      delete: jest.fn(),
     },
   },
 }));
@@ -109,6 +110,33 @@ describe('plantService.createPlant', () => {
         name: 'Rose',
         sunlightLevel: SunlightLevel.FULL_SUN,
       },
+    });
+  });
+});
+
+describe('plantService.deletePlant', () => {
+  const mockPlant: PlantDTO = { id: 1, name: 'Rose', sunlightLevel: SunlightLevel.FULL_SUN };
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should throw error if plant does not exist', async () => {
+    (prisma.plant.findUnique as jest.Mock).mockResolvedValue(null);
+
+    const plant = plantService.deletePlant(1);
+    await expect(plant).rejects.toThrow(CustomError);
+    await expect(plant).rejects.toMatchObject({ code: 404 });
+  });
+
+  it('should call prisma.plant.delete with correct id', async () => {
+    (prisma.plant.findUnique as jest.Mock).mockResolvedValue(mockPlant);
+    (prisma.plant.delete as jest.Mock).mockResolvedValue(undefined);
+
+    await plantService.deletePlant(1);
+
+    expect(prisma.plant.delete).toHaveBeenCalledWith({
+      where: { id: 1 },
     });
   });
 });
