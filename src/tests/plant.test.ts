@@ -8,6 +8,8 @@ jest.mock('../prisma', () => ({
   prisma: {
     plant: {
       findMany: jest.fn(),
+      create: jest.fn(),
+      findUnique: jest.fn(),
     },
   },
 }));
@@ -62,5 +64,51 @@ describe('plantService.getPlants', () => {
       },
     });
     expect(result).toEqual([mockPlants[0]]);
+  });
+});
+
+describe('plantService.createPlant', () => {
+  const mockPlant: PlantDTO = { id: 1, name: 'Rose', sunlightLevel: SunlightLevel.FULL_SUN };
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should throw error for invalid sunlightLevel', async () => {
+    const invalidPlant = { ...mockPlant, sunlightLevel: 'INVALID' as unknown as SunlightLevel };
+
+    const plant = plantService.createPlant(invalidPlant);
+    await expect(plant).rejects.toThrow(CustomError);
+    await expect(plant).rejects.toMatchObject({ code: 400 });
+  });
+
+  it('should throw error for empty plant name', async () => {
+    const invalidPlant = { ...mockPlant, name: '' };
+
+    const plant = plantService.createPlant(invalidPlant);
+    await expect(plant).rejects.toThrow(CustomError);
+    await expect(plant).rejects.toMatchObject({ code: 400 });
+  });
+
+  it('should throw error for existing plant name', async () => {
+    (prisma.plant.findUnique as jest.Mock).mockResolvedValue(mockPlant);
+
+    const plant = plantService.createPlant(mockPlant);
+    await expect(plant).rejects.toThrow(CustomError);
+    await expect(plant).rejects.toMatchObject({ code: 409 });
+  });
+
+  it('should call prisma.plant.create with correct data', async () => {
+    (prisma.plant.findUnique as jest.Mock).mockResolvedValue(null);
+    (prisma.plant.create as jest.Mock).mockResolvedValue(undefined);
+
+    await plantService.createPlant(mockPlant);
+
+    expect(prisma.plant.create).toHaveBeenCalledWith({
+      data: {
+        name: 'Rose',
+        sunlightLevel: SunlightLevel.FULL_SUN,
+      },
+    });
   });
 });
