@@ -9,14 +9,28 @@ export interface PlantDTO {
   sunlightLevel: SunlightLevel;
 }
 
-async function getPlants(req: Request): Promise<PlantDTO[]> {
-  const sunlightQuery = req.query.sunlightLevel as SunlightLevel | undefined;
+export interface GetPlantsParams {
+  sunlightLevel?: string;
+  name?: string;
+}
+
+async function getPlants(params: GetPlantsParams): Promise<PlantDTO[]> {
+  const sunlightQuery = params.sunlightLevel;
+  const nameQuery = params.name;
 
   if (sunlightQuery && !Object.values(SunlightLevel).some((value) => value === sunlightQuery)) {
     throw new CustomError('Invalid sunlightLevel', 400);
   }
   const plants = await prisma.plant.findMany({
-    where: { sunlightLevel: sunlightQuery as SunlightLevel },
+    where: {
+      ...(sunlightQuery && { sunlightLevel: sunlightQuery as SunlightLevel }),
+      ...(nameQuery && {
+        name: {
+          contains: nameQuery,
+          mode: 'insensitive',
+        },
+      }),
+    },
   });
 
   return plants;

@@ -1,4 +1,4 @@
-import { plantService, PlantDTO } from '../service/plant.service';
+import { plantService, PlantDTO, GetPlantsParams } from '../service/plant.service';
 import { prisma } from '../prisma';
 import { CustomError } from '../errors/CustomError';
 import { Request } from 'express';
@@ -24,20 +24,43 @@ describe('plantService.getPlants', () => {
   });
 
   it('should throw error for invalid sunlightLevel', async () => {
-    const req = { query: { sunlightLevel: 'INVALID' } } as unknown as Request;
+    const params: GetPlantsParams = {
+      sunlightLevel: 'INVALID',
+    };
 
-    await expect(plantService.getPlants(req)).rejects.toThrow(CustomError);
-    await expect(plantService.getPlants(req)).rejects.toMatchObject({ code: 400 });
+    await expect(plantService.getPlants(params)).rejects.toThrow(CustomError);
+    await expect(plantService.getPlants(params)).rejects.toMatchObject({ code: 400 });
   });
 
   it('should call prisma.plant.findMany with correct sunlightLevel', async () => {
-    const req = { query: { sunlightLevel: 'FULL_SUN' } } as unknown as Request;
+    const params: GetPlantsParams = {
+      sunlightLevel: 'FULL_SUN',
+    };
     (prisma.plant.findMany as jest.Mock).mockResolvedValue([mockPlants[0]]);
 
-    const result = await plantService.getPlants(req);
+    const result = await plantService.getPlants(params);
 
     expect(prisma.plant.findMany).toHaveBeenCalledWith({
       where: { sunlightLevel: SunlightLevel.FULL_SUN },
+    });
+    expect(result).toEqual([mockPlants[0]]);
+  });
+
+  it('should call prisma.plant.findMany with correct name', async () => {
+    const params: GetPlantsParams = {
+      name: 'Rose',
+    };
+    (prisma.plant.findMany as jest.Mock).mockResolvedValue([mockPlants[0]]);
+
+    const result = await plantService.getPlants(params);
+
+    expect(prisma.plant.findMany).toHaveBeenCalledWith({
+      where: {
+        name: {
+          contains: 'Rose',
+          mode: 'insensitive',
+        },
+      },
     });
     expect(result).toEqual([mockPlants[0]]);
   });
