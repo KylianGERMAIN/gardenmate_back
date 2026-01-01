@@ -14,13 +14,24 @@ export interface GetPlantsParams {
   name?: string;
 }
 
+/**
+ * Check if sunlightLevel is valid
+ */
+function checkSunlightLevel(sunlightLevel: string | undefined): void {
+  if (sunlightLevel && !Object.values(SunlightLevel).includes(sunlightLevel as SunlightLevel)) {
+    throw new CustomError('Invalid sunlightLevel', 400);
+  }
+}
+
+/**
+ * Get plants with optional filters
+ */
 async function getPlants(params: GetPlantsParams): Promise<PlantDTO[]> {
   const sunlightQuery = params.sunlightLevel;
   const nameQuery = params.name;
 
-  if (sunlightQuery && !Object.values(SunlightLevel).some((value) => value === sunlightQuery)) {
-    throw new CustomError('Invalid sunlightLevel', 400);
-  }
+  checkSunlightLevel(sunlightQuery);
+
   const plants = await prisma.plant.findMany({
     where: {
       ...(sunlightQuery && { sunlightLevel: sunlightQuery as SunlightLevel }),
@@ -36,6 +47,40 @@ async function getPlants(params: GetPlantsParams): Promise<PlantDTO[]> {
   return plants;
 }
 
+/**
+ * Create a new plant
+ */
+async function createPlant(plant: PlantDTO): Promise<void> {
+  const plantSunlight = plant.sunlightLevel;
+  const plantName = plant.name;
+
+  if (!plantSunlight) {
+    throw new CustomError('Sunlight level is required', 400);
+  }
+
+  await checkSunlightLevel(plantSunlight);
+
+  if (!plantName || plantName.trim() === '') {
+    throw new CustomError('Plant name cannot be empty', 400);
+  }
+
+  const existingPlant = await prisma.plant.findUnique({
+    where: { name: plantName },
+  });
+
+  if (existingPlant) {
+    throw new CustomError('Plant with this name already exists', 409);
+  }
+
+  await prisma.plant.create({
+    data: {
+      name: plantName,
+      sunlightLevel: plantSunlight as SunlightLevel,
+    },
+  });
+}
+
 export const plantService = {
   getPlants,
+  createPlant,
 };
