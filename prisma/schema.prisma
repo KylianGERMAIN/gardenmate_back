@@ -13,15 +13,21 @@ datasource db {
   provider = "postgresql"
 }
 
+
+enum SunlightLevel {
+  FULL_SUN
+  PARTIAL_SHADE
+  SHADE
+}
 model Plant {
   id            Int      @id @default(autoincrement())
   name          String   @unique
-  sunlightLevel String   // exemple: "plein soleil", "mi-ombre", "ombre"
+  sunlightLevel SunlightLevel
 
   @@map("plants")
 }
 
-// Enum pour les rôles
+
 enum UserRole {
   ADMIN
   USER

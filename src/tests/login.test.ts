@@ -1,7 +1,6 @@
 import { prisma } from '../prisma';
 import { CreateUserDTO, LoginUserDTO, userService } from '../service/user.service';
 import { CustomError } from '../errors/CustomError';
-import bcrypt from 'bcrypt';
 
 describe('User service - login', () => {
   let testLogin: string;

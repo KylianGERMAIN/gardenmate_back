@@ -8,7 +8,7 @@ CREATE TABLE "users" (
     "password" TEXT NOT NULL,
     "role" "UserRole" NOT NULL,
 
-    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
 
-CREATE UNIQUE INDEX "User_login_key" ON "users"("login");
+CREATE UNIQUE INDEX "users_login_key" ON "users"("login");
