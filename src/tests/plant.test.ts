@@ -26,12 +26,12 @@ describe('plantService.getPlants', () => {
   });
 
   it('should throw error for invalid sunlightLevel', async () => {
-    const params: GetPlantsParams = {
+    const params = {
       sunlightLevel: 'INVALID',
-    };
+    } as unknown as GetPlantsParams;
 
-    await expect(plantService.getPlants(params)).rejects.toThrow(CustomError);
-    await expect(plantService.getPlants(params)).rejects.toMatchObject({ code: 400 });
+    await expect(plantService.findPlants(params)).rejects.toThrow(CustomError);
+    await expect(plantService.findPlants(params)).rejects.toMatchObject({ code: 400 });
   });
 
   it('should call prisma.plant.findMany with correct sunlightLevel', async () => {
@@ -40,7 +40,7 @@ describe('plantService.getPlants', () => {
     };
     (prisma.plant.findMany as jest.Mock).mockResolvedValue([mockPlants[0]]);
 
-    const result = await plantService.getPlants(params);
+    const result = await plantService.findPlants(params);
 
     expect(prisma.plant.findMany).toHaveBeenCalledWith({
       where: { sunlightLevel: SunlightLevel.FULL_SUN },
@@ -54,7 +54,7 @@ describe('plantService.getPlants', () => {
     };
     (prisma.plant.findMany as jest.Mock).mockResolvedValue([mockPlants[0]]);
 
-    const result = await plantService.getPlants(params);
+    const result = await plantService.findPlants(params);
 
     expect(prisma.plant.findMany).toHaveBeenCalledWith({
       where: {
@@ -94,7 +94,7 @@ describe('plantService.createPlant', () => {
   it('should throw error for existing plant name', async () => {
     (prisma.plant.findUnique as jest.Mock).mockResolvedValue(mockPlant);
 
-    const plant = plantService.createPlant(mockPlant);
+    const plant = plantService.createPlant({ name: 'Rose', sunlightLevel: SunlightLevel.FULL_SUN });
     await expect(plant).rejects.toThrow(CustomError);
     await expect(plant).rejects.toMatchObject({ code: 409 });
   });
