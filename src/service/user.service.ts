@@ -2,6 +2,7 @@ import { CustomError } from '../errors/CustomError';
 import { UserRole } from '../generated/prisma/enums';
 import { JwtPayload } from '../middleware/auth';
 import { prisma } from '../prisma';
+import { Prisma } from '../generated/prisma/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
@@ -44,7 +45,7 @@ function validateUserInput(user: CreateUserDTO) {
 /**
  * Create a new user
  */
-async function createUser(user: CreateUserDTO) {
+async function createUser(user: CreateUserDTO): Promise<GetUserDTO> {
   validateUserInput(user);
 
   const existingUser = await prisma.user.findUnique({
@@ -57,11 +58,16 @@ async function createUser(user: CreateUserDTO) {
 
   const password = await bcrypt.hash(user.password, 10);
 
-  await prisma.user.create({
+  return await prisma.user.create({
     data: {
       login: user.login,
       password: password,
       role: 'USER',
+    },
+    select: {
+      id: true,
+      login: true,
+      role: true,
     },
   });
 }
@@ -90,26 +96,18 @@ async function getUser(userId: number): Promise<GetUserDTO> {
  * Delete a user by ID
  */
 async function deleteUser(userId: number): Promise<GetUserDTO> {
-  const existingUser = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      login: true,
-      role: true,
-    },
-  });
-
-  if (!existingUser) {
-    throw new CustomError(`The user with id '${userId}' doesn't exist`, 404);
+  try {
+    const deletedUser = await prisma.user.delete({
+      where: { id: userId },
+      select: { id: true, login: true, role: true },
+    });
+    return deletedUser;
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      throw new CustomError(`The user with id '${userId}' doesn't exist`, 404);
+    }
+    throw error;
   }
-
-  await prisma.user.delete({
-    where: {
-      id: userId,
-    },
-  });
-
-  return existingUser;
 }
 
 /**

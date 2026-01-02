@@ -44,10 +44,10 @@ router.get('/:id', authorize(), async (req: RequestWithUser, res: Response) => {
 
 // POST /users
 router.post('/', async (req: Request, res: Response) => {
-  const user: CreateUserDTO = req.body;
-
   try {
-    await userService.createUser(user);
+    const user: CreateUserDTO = req.body;
+    const createdUser = await userService.createUser(user);
+    return res.status(201).json(createdUser);
   } catch (error: unknown) {
     if (error instanceof CustomError) {
       return res.status(error.code).json({ message: error.message });
@@ -56,34 +56,24 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(500).json({ message: 'Internal server error' });
     }
   }
-
-  return res.status(201).json({ message: `User ${user.login} created` });
 });
 
 // DELETE /users/:id
-router.delete(
-  '/:id',
-  (req: RequestWithUser, res: Response, next) => {
-    const userId = Number(req.params.id);
-    if (Number.isNaN(userId)) {
-      return res.status(400).json({ message: 'Invalid user id' });
+router.delete('/:id', authorize(['ADMIN']), async (req: RequestWithUser, res: Response) => {
+  const userId = Number(req.params.id);
+  if (Number.isNaN(userId)) return res.status(400).json({ message: 'Invalid user id' });
+
+  try {
+    const deletedUser = await userService.deleteUser(userId);
+    return res.status(200).json(deletedUser);
+  } catch (error: unknown) {
+    if (error instanceof CustomError) {
+      return res.status(error.code).json({ message: error.message });
+    } else {
+      console.error(error);
+      return res.status(500).json({ message: 'Internal server error' });
     }
-    req.id = userId;
-    next();
-  },
-  authorize(['ADMIN']),
-  async (req: RequestWithUser, res: Response) => {
-    try {
-      await userService.deleteUser(req.id!);
-    } catch (error: unknown) {
-      if (error instanceof CustomError) {
-        return res.status(error.code).json({ message: error.message });
-      } else {
-        console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
-      }
-    }
-  },
-);
+  }
+});
 
 export default router;

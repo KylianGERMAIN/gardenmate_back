@@ -1,7 +1,7 @@
-import { Request } from 'express';
 import { CustomError } from '../errors/CustomError';
 import { SunlightLevel } from '../generated/prisma/enums';
 import { prisma } from '../prisma';
+import { Plant, Prisma } from '../generated/prisma/client';
 
 export interface PlantDTO {
   id: number;
@@ -9,9 +9,25 @@ export interface PlantDTO {
   sunlightLevel: SunlightLevel;
 }
 
+export interface CreatePlantDTO {
+  name: string;
+  sunlightLevel: SunlightLevel;
+}
+
 export interface GetPlantsParams {
   sunlightLevel?: string;
   name?: string;
+}
+
+/**
+ * Map plant model to PlantDTO
+ */
+function mapToPlantDTO(plant: Plant): PlantDTO {
+  return {
+    id: plant.id,
+    name: plant.name,
+    sunlightLevel: plant.sunlightLevel,
+  };
 }
 
 /**
@@ -26,11 +42,11 @@ function checkSunlightLevel(sunlightLevel: string | undefined): void {
 /**
  * Get plants with optional filters
  */
-async function getPlants(params: GetPlantsParams): Promise<PlantDTO[]> {
+async function findPlants(params: GetPlantsParams): Promise<PlantDTO[]> {
   const sunlightQuery = params.sunlightLevel;
   const nameQuery = params.name;
 
-  checkSunlightLevel(sunlightQuery);
+  checkSunlightLevel(sunlightQuery as string);
 
   const plants = await prisma.plant.findMany({
     where: {
@@ -44,61 +60,46 @@ async function getPlants(params: GetPlantsParams): Promise<PlantDTO[]> {
     },
   });
 
-  return plants;
+  return plants.map(mapToPlantDTO);
 }
 
 /**
  * Create a new plant
  */
-async function createPlant(plant: PlantDTO): Promise<void> {
-  const plantSunlight = plant.sunlightLevel;
-  const plantName = plant.name;
+async function createPlant({ name, sunlightLevel }: CreatePlantDTO): Promise<PlantDTO> {
+  if (!sunlightLevel) throw new CustomError('Sunlight level is required', 400);
+  if (!name?.trim()) throw new CustomError('Plant name cannot be empty', 400);
+  checkSunlightLevel(sunlightLevel as string);
 
-  if (!plantSunlight) {
-    throw new CustomError('Sunlight level is required', 400);
+  try {
+    const newPlant = await prisma.plant.create({ data: { name, sunlightLevel } });
+    return mapToPlantDTO(newPlant);
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      throw new CustomError('Plant with this name already exists', 409);
+    }
+    throw error;
   }
-
-  checkSunlightLevel(plantSunlight);
-
-  if (!plantName || plantName.trim() === '') {
-    throw new CustomError('Plant name cannot be empty', 400);
-  }
-
-  const existingPlant = await prisma.plant.findUnique({
-    where: { name: plantName },
-  });
-
-  if (existingPlant) {
-    throw new CustomError('Plant with this name already exists', 409);
-  }
-
-  await prisma.plant.create({
-    data: {
-      name: plantName,
-      sunlightLevel: plantSunlight as SunlightLevel,
-    },
-  });
 }
 
 /**
  * Delete a plant by id
  */
-async function deletePlant(plantId: number): Promise<void> {
-  const existingPlant = await prisma.plant.findUnique({
-    where: { id: plantId },
-  });
-
-  if (!existingPlant) {
-    throw new CustomError('Plant not found', 404);
+async function deletePlant(plantId: number): Promise<PlantDTO> {
+  try {
+    const deletedPlant = await prisma.plant.delete({ where: { id: plantId } });
+    return mapToPlantDTO(deletedPlant);
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      throw new CustomError('Plant not found', 404);
+    }
+    throw error;
   }
-
-  await prisma.plant.delete({
-    where: { id: plantId },
-  });
 }
 
 export const plantService = {
-  getPlants,
+  checkSunlightLevel,
+  findPlants,
   createPlant,
   deletePlant,
 };
