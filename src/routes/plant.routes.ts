@@ -1,26 +1,23 @@
 import { Router, Request, Response } from 'express';
 import { authorize } from '../middleware/authHandler';
-import { CreatePlantDTO, plantService } from '../service/plant.service';
+import { plantService } from '../service/plant.service';
 import { asyncHandler } from '../middleware/asyncHandler';
-import { CustomError } from '../errors/CustomError';
+import {
+  plantCreateSchema,
+  plantDeleteSchema,
+  PlantGetQuery,
+  plantGetSchema,
+} from '../schemas/plant';
+import { validate } from '../middleware/validate';
 
 const router = Router();
 
 // GET /plants
 router.get(
   '/',
-  authorize(),
+  validate(plantGetSchema, 'query'),
   asyncHandler(async (req: Request, res: Response) => {
-    const { sunlightLevel, name } = req.query as unknown as {
-      sunlightLevel?: string;
-      name?: string;
-    };
-
-    const plants = await plantService.findPlants({
-      sunlightLevel: sunlightLevel,
-      name: name,
-    });
-
+    const plants = await plantService.findPlants(req.query as PlantGetQuery);
     res.status(200).json(plants);
   }),
 );
@@ -29,9 +26,9 @@ router.get(
 router.post(
   '/',
   authorize(['ADMIN']),
+  validate(plantCreateSchema, 'body'),
   asyncHandler(async (req: Request, res: Response) => {
-    const plant: CreatePlantDTO = req.body;
-    const newPlant = await plantService.createPlant(plant);
+    const newPlant = await plantService.createPlant(req.body);
     res.status(201).json(newPlant);
   }),
 );
@@ -40,11 +37,9 @@ router.post(
 router.delete(
   '/:id',
   authorize(['ADMIN']),
+  validate(plantDeleteSchema, 'params'),
   asyncHandler(async (req: Request, res: Response) => {
-    const plantId = Number(req.params.id);
-
-    if (Number.isNaN(plantId)) throw new CustomError('Invalid plant id', 400);
-    const deletedPlant = await plantService.deletePlant(plantId);
+    const deletedPlant = await plantService.deletePlant(Number(req.params.id));
     res.status(200).json(deletedPlant);
   }),
 );

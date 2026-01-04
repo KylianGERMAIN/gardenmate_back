@@ -2,21 +2,12 @@ import { CustomError } from '../errors/CustomError';
 import { SunlightLevel } from '../generated/prisma/enums';
 import { prisma } from '../prisma';
 import { Plant, Prisma } from '../generated/prisma/client';
+import { PlantCreateBody, PlantGetQuery } from '../schemas/plant';
 
 export interface PlantDTO {
   id: number;
   name: string;
   sunlightLevel: SunlightLevel;
-}
-
-export interface CreatePlantDTO {
-  name: string;
-  sunlightLevel: SunlightLevel;
-}
-
-export interface GetPlantsParams {
-  sunlightLevel?: string;
-  name?: string;
 }
 
 /**
@@ -31,22 +22,11 @@ function mapToPlantDTO(plant: Plant): PlantDTO {
 }
 
 /**
- * Check if sunlightLevel is valid
- */
-function checkSunlightLevel(sunlightLevel: string | undefined): void {
-  if (sunlightLevel && !Object.values(SunlightLevel).includes(sunlightLevel as SunlightLevel)) {
-    throw new CustomError('Invalid sunlightLevel', 400);
-  }
-}
-
-/**
  * Get plants with optional filters
  */
-async function findPlants(params: GetPlantsParams): Promise<PlantDTO[]> {
+async function findPlants(params: PlantGetQuery): Promise<PlantDTO[]> {
   const sunlightQuery = params.sunlightLevel;
   const nameQuery = params.name;
-
-  checkSunlightLevel(sunlightQuery as string);
 
   const plants = await prisma.plant.findMany({
     where: {
@@ -66,11 +46,7 @@ async function findPlants(params: GetPlantsParams): Promise<PlantDTO[]> {
 /**
  * Create a new plant
  */
-async function createPlant({ name, sunlightLevel }: CreatePlantDTO): Promise<PlantDTO> {
-  if (!sunlightLevel) throw new CustomError('Sunlight level is required', 400);
-  if (!name?.trim()) throw new CustomError('Plant name cannot be empty', 400);
-  checkSunlightLevel(sunlightLevel as string);
-
+async function createPlant({ name, sunlightLevel }: PlantCreateBody): Promise<PlantDTO> {
   try {
     const newPlant = await prisma.plant.create({ data: { name, sunlightLevel } });
     return mapToPlantDTO(newPlant);
@@ -98,7 +74,6 @@ async function deletePlant(plantId: number): Promise<PlantDTO> {
 }
 
 export const plantService = {
-  checkSunlightLevel,
   findPlants,
   createPlant,
   deletePlant,
