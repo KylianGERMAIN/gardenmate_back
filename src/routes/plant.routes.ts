@@ -43,9 +43,7 @@ router.delete(
   asyncHandler(async (req: Request, res: Response) => {
     const plantId = Number(req.params.id);
 
-    if (Number.isNaN(plantId)) {
-      throw new CustomError('Invalid plant id', 400);
-    }
+    if (Number.isNaN(plantId)) throw new CustomError('Invalid plant id', 400);
     const deletedPlant = await plantService.deletePlant(plantId);
     res.status(200).json(deletedPlant);
   }),

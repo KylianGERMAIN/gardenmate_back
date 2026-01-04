@@ -13,7 +13,7 @@ router.post(
     const userLogin: LoginUserDTO = req.body;
 
     const token = await userService.authenticateUser(userLogin);
-    return res.status(200).json({ token });
+    res.status(200).json({ token });
   }),
 );
 
@@ -24,9 +24,7 @@ router.get(
   asyncHandler(async (req: RequestWithUser, res: Response) => {
     const userId = Number(req.params.id);
 
-    if (Number.isNaN(userId)) {
-      throw new CustomError('Invalid user id', 400);
-    }
+    if (Number.isNaN(userId)) throw new CustomError('Invalid user id', 400);
     const user = await userService.getUser(userId);
     res.status(200).json(user);
   }),
@@ -38,7 +36,7 @@ router.post(
   asyncHandler(async (req: Request, res: Response) => {
     const user: CreateUserDTO = req.body;
     const createdUser = await userService.createUser(user);
-    return res.status(201).json(createdUser);
+    res.status(201).json(createdUser);
   }),
 );
 
@@ -51,7 +49,7 @@ router.delete(
     if (Number.isNaN(userId)) throw new CustomError('Invalid user id', 400);
 
     const deletedUser = await userService.deleteUser(userId);
-    return res.status(200).json(deletedUser);
+    res.status(200).json(deletedUser);
   }),
 );
 
