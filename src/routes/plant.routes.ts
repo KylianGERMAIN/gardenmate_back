@@ -1,17 +1,23 @@
 import { Router, Request, Response } from 'express';
 import { authorize } from '../middleware/auth';
 import { CustomError } from '../errors/CustomError';
-import { PlantDTO, plantService } from '../service/plant.service';
+import { CreatePlantDTO, plantService } from '../service/plant.service';
 
 const router = Router();
 
 // GET /plants
 router.get('/', authorize(), async (req: Request, res: Response) => {
   try {
-    const plants = await plantService.getPlants({
-      sunlightLevel: req.query.sunlightLevel as string,
-      name: req.query.name as string,
+    const { sunlightLevel, name } = req.query as unknown as {
+      sunlightLevel?: string;
+      name?: string;
+    };
+
+    const plants = await plantService.findPlants({
+      sunlightLevel: sunlightLevel,
+      name: name,
     });
+
     res.status(200).json(plants);
   } catch (error: unknown) {
     if (error instanceof CustomError) {
@@ -25,10 +31,10 @@ router.get('/', authorize(), async (req: Request, res: Response) => {
 
 // POST /plants
 router.post('/', authorize(['ADMIN']), async (req: Request, res: Response) => {
-  const plant: PlantDTO = req.body;
   try {
-    await plantService.createPlant(plant);
-    res.status(201).json({ message: 'Plant created successfully' });
+    const plant: CreatePlantDTO = req.body;
+    const newPlant = await plantService.createPlant(plant);
+    res.status(201).json(newPlant);
   } catch (error: unknown) {
     if (error instanceof CustomError) {
       return res.status(error.code).json({ message: error.message });
@@ -41,13 +47,14 @@ router.post('/', authorize(['ADMIN']), async (req: Request, res: Response) => {
 
 // DELETE /plants/:id
 router.delete('/:id', authorize(['ADMIN']), async (req: Request, res: Response) => {
-  const plantId = Number(req.params.id);
   try {
+    const plantId = Number(req.params.id);
+
     if (Number.isNaN(plantId)) {
       return res.status(400).json({ message: 'Invalid plant id' });
     }
-    await plantService.deletePlant(plantId);
-    res.status(200).json({ message: 'Plant deleted successfully' });
+    const deletedPlant = await plantService.deletePlant(plantId);
+    res.status(200).json(deletedPlant);
   } catch (error: unknown) {
     if (error instanceof CustomError) {
       return res.status(error.code).json({ message: error.message });
