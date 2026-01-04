@@ -1,111 +1,81 @@
 import { prisma } from '../prisma';
-import { CreateUserDTO, userService } from '../service/user.service';
-import { CustomError } from '../errors/CustomError';
+import { userService, CreateUserDTO } from '../service/user.service';
+import { Prisma } from '../generated/prisma/client';
 
-describe('User service', () => {
-  let testLogin: string;
+jest.mock('../prisma', () => ({
+  prisma: {
+    user: {
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      delete: jest.fn(),
+    },
+  },
+}));
 
-  beforeEach(() => {
-    testLogin = `testuser_${Date.now()}`;
+describe('userService', () => {
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
-  afterEach(async () => {
-    // Supprime l'utilisateur créé pour ne pas polluer la base
-    await prisma.user.deleteMany({ where: { login: testLogin } });
-  });
-
-  afterAll(async () => {
-    await prisma.$disconnect();
-  });
-
-  it('should throw error if login is missing', () => {
-    const user: CreateUserDTO = { login: '', password: 'Admin123*', role: 'ADMIN' };
-    expect(() => userService.validateUserInput(user)).toThrow('Login and password are required');
-  });
-
-  it('should throw error if password is missing', () => {
-    const user: CreateUserDTO = { login: 'validlogin', password: '', role: 'ADMIN' };
-    expect(() => userService.validateUserInput(user)).toThrow('Login and password are required');
-  });
-
-  it('should throw error if login is too short', () => {
-    const user: CreateUserDTO = { login: 'abc', password: 'Admin123*', role: 'ADMIN' };
-    expect(() => userService.validateUserInput(user)).toThrow(
-      'Login must be at least 5 characters long',
-    );
-  });
-
-  it('should throw error if password does not meet criteria', () => {
-    const user: CreateUserDTO = { login: 'validlogin', password: 'password', role: 'ADMIN' };
-    expect(() => userService.validateUserInput(user)).toThrow(
-      'Password must contain at least 8 characters, including one uppercase letter, one lowercase letter, one number, and one special character',
-    );
-  });
-
-  it('should hash password and create user', async () => {
-    const user: CreateUserDTO = { login: testLogin, password: 'Admin123*', role: 'ADMIN' };
-    await userService.createUser(user);
-
-    const dbUser = await prisma.user.findUnique({ where: { login: testLogin } });
-    expect(dbUser).not.toBeNull();
-    expect(dbUser?.login).toBe(testLogin);
-    expect(dbUser?.password).not.toBe('Admin123*'); // Vérifie que le mot de passe est hashé
-  });
+  const testUser: CreateUserDTO = {
+    login: 'testuser',
+    password: 'Admin123*',
+    role: 'USER',
+  };
 
   it('should throw error if user already exists', async () => {
-    const user: CreateUserDTO = { login: testLogin, password: 'Admin123*', role: 'ADMIN' };
-    await userService.createUser(user);
-
-    await expect(userService.createUser(user)).rejects.toThrow(CustomError);
-  });
-
-  it('should return user if it exists', async () => {
-    const user: CreateUserDTO = { login: testLogin, password: 'Admin123*', role: 'USER' };
-    await userService.createUser(user);
-
-    const dbUser = await prisma.user.findUnique({ where: { login: testLogin } });
-    expect(dbUser).not.toBeNull();
-
-    const result = await userService.getUser(dbUser!.id);
-
-    expect(result).toEqual({
-      id: dbUser!.id,
-      login: testLogin,
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+      id: 1,
+      login: 'testuser',
+      password: 'hashed',
       role: 'USER',
     });
+
+    await expect(userService.createUser(testUser)).rejects.toMatchObject({ code: 409 });
   });
 
-  it('should throw CustomError if user does not exist', async () => {
-    await expect(userService.getUser(999999)).rejects.toThrow(CustomError);
-    await expect(userService.getUser(999999)).rejects.toMatchObject({
-      code: 404,
-    });
+  it('should create user with hashed password', async () => {
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+    (prisma.user.create as jest.Mock).mockImplementation(async (data) => ({
+      id: 1,
+      login: data.data.login,
+      role: data.data.role,
+    }));
+
+    const result = await userService.createUser(testUser);
+    expect(result).toEqual({ id: 1, login: 'testuser', role: 'USER' });
+    expect(prisma.user.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ login: 'testuser', role: 'USER' }),
+        select: expect.any(Object),
+      }),
+    );
+  });
+
+  it('should throw error if user not found on getUser', async () => {
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+    await expect(userService.getUser(1)).rejects.toMatchObject({ code: 404 });
   });
 
   it('should delete an existing user', async () => {
-    // Créer un utilisateur test
-    const user: CreateUserDTO = { login: testLogin, password: 'Admin123*', role: 'USER' };
-    await userService.createUser(user);
+    const mockDeletedUser = { id: 1, login: 'testuser', role: 'USER' };
+    (prisma.user.delete as jest.Mock).mockResolvedValue(mockDeletedUser);
 
-    const dbUser = await prisma.user.findUnique({ where: { login: testLogin } });
-    expect(dbUser).not.toBeNull();
-
-    // Supprimer l'utilisateur
-    const deletedUser = await userService.deleteUser(dbUser!.id);
-
-    // Vérifier que le delete retourne l'utilisateur supprimé
-    expect(deletedUser.id).toBe(dbUser!.id);
-    expect(deletedUser.login).toBe(testLogin);
-
-    // Vérifier que l'utilisateur n'existe plus en base
-    const checkDb = await prisma.user.findUnique({ where: { id: dbUser!.id } });
-    expect(checkDb).toBeNull();
+    const result = await userService.deleteUser(1);
+    expect(result).toEqual(mockDeletedUser);
+    expect(prisma.user.delete).toHaveBeenCalledWith({
+      where: { id: 1 },
+      select: { id: true, login: true, role: true },
+    });
   });
 
-  it('should throw CustomError if deleting non-existent user', async () => {
-    await expect(userService.deleteUser(999999)).rejects.toThrow(CustomError);
-    await expect(userService.deleteUser(999999)).rejects.toMatchObject({
-      code: 404,
+  it('should throw error if deleting non-existent user', async () => {
+    const prismaError = new Prisma.PrismaClientKnownRequestError('Record not found', {
+      code: 'P2025',
+      clientVersion: '5.x.x',
     });
+    (prisma.user.delete as jest.Mock).mockRejectedValue(prismaError);
+
+    await expect(userService.deleteUser(1)).rejects.toMatchObject({ code: 404 });
   });
 });

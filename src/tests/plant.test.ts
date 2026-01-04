@@ -4,7 +4,6 @@ import { CustomError } from '../errors/CustomError';
 import { SunlightLevel } from '../generated/prisma/enums';
 import { Prisma } from '../generated/prisma/client';
 
-// Mock Prisma
 jest.mock('../prisma', () => ({
   prisma: {
     plant: {

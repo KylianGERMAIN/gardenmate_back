@@ -1,8 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authorize } from '../middleware/auth';
 import { CustomError } from '../errors/CustomError';
-import { CreatePlantDTO, GetPlantsParams, plantService } from '../service/plant.service';
-import { SunlightLevel } from '../generated/prisma/browser';
+import { CreatePlantDTO, plantService } from '../service/plant.service';
 
 const router = Router();
 
@@ -34,8 +33,6 @@ router.get('/', authorize(), async (req: Request, res: Response) => {
 router.post('/', authorize(['ADMIN']), async (req: Request, res: Response) => {
   try {
     const plant: CreatePlantDTO = req.body;
-
-    plantService.checkSunlightLevel(plant.sunlightLevel);
     const newPlant = await plantService.createPlant(plant);
     res.status(201).json(newPlant);
   } catch (error: unknown) {
