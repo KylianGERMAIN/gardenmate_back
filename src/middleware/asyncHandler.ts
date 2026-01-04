@@ -1,6 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 
-type AsyncRouteHandler = (req: Request, res: Response, next: NextFunction) => void | Promise<void>;
+type AsyncRouteHandler<TReq extends Request = Request> = (
+  req: TReq,
+  res: Response,
+  next: NextFunction,
+) => void | Promise<void>;
 
 export const asyncHandler = (fn: AsyncRouteHandler) => {
   return (req: Request, res: Response, next: NextFunction) => {

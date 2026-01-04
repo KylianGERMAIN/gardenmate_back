@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { authorize, RequestWithUser } from '../middleware/authHandler';
+import { authorize } from '../middleware/authHandler';
 import { CreateUserDTO, LoginUserDTO, userService } from '../service/user.service';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { CustomError } from '../errors/CustomError';
@@ -21,7 +21,7 @@ router.post(
 router.get(
   '/:id',
   authorize(),
-  asyncHandler(async (req: RequestWithUser, res: Response) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const userId = Number(req.params.id);
 
     if (Number.isNaN(userId)) throw new CustomError('Invalid user id', 400);
@@ -44,7 +44,7 @@ router.post(
 router.delete(
   '/:id',
   authorize(['ADMIN']),
-  asyncHandler(async (req: RequestWithUser, res: Response) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const userId = Number(req.params.id);
     if (Number.isNaN(userId)) throw new CustomError('Invalid user id', 400);
 
