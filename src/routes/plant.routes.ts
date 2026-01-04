@@ -1,13 +1,16 @@
 import { Router, Request, Response } from 'express';
-import { authorize } from '../middleware/auth';
-import { CustomError } from '../errors/CustomError';
+import { authorize } from '../middleware/authHandler';
 import { CreatePlantDTO, plantService } from '../service/plant.service';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { CustomError } from '../errors/CustomError';
 
 const router = Router();
 
 // GET /plants
-router.get('/', authorize(), async (req: Request, res: Response) => {
-  try {
+router.get(
+  '/',
+  authorize(),
+  asyncHandler(async (req: Request, res: Response) => {
     const { sunlightLevel, name } = req.query as unknown as {
       sunlightLevel?: string;
       name?: string;
@@ -19,50 +22,33 @@ router.get('/', authorize(), async (req: Request, res: Response) => {
     });
 
     res.status(200).json(plants);
-  } catch (error: unknown) {
-    if (error instanceof CustomError) {
-      return res.status(error.code).json({ message: error.message });
-    } else {
-      console.error(error);
-      return res.status(500).json({ message: 'Internal server error' });
-    }
-  }
-});
+  }),
+);
 
 // POST /plants
-router.post('/', authorize(['ADMIN']), async (req: Request, res: Response) => {
-  try {
+router.post(
+  '/',
+  authorize(['ADMIN']),
+  asyncHandler(async (req: Request, res: Response) => {
     const plant: CreatePlantDTO = req.body;
     const newPlant = await plantService.createPlant(plant);
     res.status(201).json(newPlant);
-  } catch (error: unknown) {
-    if (error instanceof CustomError) {
-      return res.status(error.code).json({ message: error.message });
-    } else {
-      console.error(error);
-      return res.status(500).json({ message: 'Internal server error' });
-    }
-  }
-});
+  }),
+);
 
 // DELETE /plants/:id
-router.delete('/:id', authorize(['ADMIN']), async (req: Request, res: Response) => {
-  try {
+router.delete(
+  '/:id',
+  authorize(['ADMIN']),
+  asyncHandler(async (req: Request, res: Response) => {
     const plantId = Number(req.params.id);
 
     if (Number.isNaN(plantId)) {
-      return res.status(400).json({ message: 'Invalid plant id' });
+      throw new CustomError('Invalid plant id', 400);
     }
     const deletedPlant = await plantService.deletePlant(plantId);
     res.status(200).json(deletedPlant);
-  } catch (error: unknown) {
-    if (error instanceof CustomError) {
-      return res.status(error.code).json({ message: error.message });
-    } else {
-      console.error(error);
-      return res.status(500).json({ message: 'Internal server error' });
-    }
-  }
-});
+  }),
+);
 
 export default router;

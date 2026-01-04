@@ -2,7 +2,6 @@ import { prisma } from '../prisma';
 import { userService, LoginUserDTO } from '../service/user.service';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { Prisma } from '../generated/prisma/client';
 
 jest.mock('../prisma', () => ({
   prisma: {

@@ -1,6 +1,6 @@
 import { CustomError } from '../errors/CustomError';
 import { UserRole } from '../generated/prisma/enums';
-import { JwtPayload } from '../middleware/auth';
+import { JwtPayload } from '../middleware/authHandler';
 import { prisma } from '../prisma';
 import { Prisma } from '../generated/prisma/client';
 import bcrypt from 'bcrypt';
