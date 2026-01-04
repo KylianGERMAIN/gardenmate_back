@@ -64,9 +64,4 @@ describe('userService - login (mocked)', () => {
     const loginDto: LoginUserBody = { login: 'nonexistent', password: 'Admin123*' };
     await expect(userService.authenticateUser(loginDto)).rejects.toMatchObject({ code: 404 });
   });
-
-  it('should throw error if login or password is missing', async () => {
-    const loginDto: LoginUserBody = { login: '', password: '' };
-    await expect(userService.authenticateUser(loginDto)).rejects.toMatchObject({ code: 400 });
-  });
 });

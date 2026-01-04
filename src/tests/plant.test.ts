@@ -50,4 +50,37 @@ describe('plantService - unit tests', () => {
 
     await expect(plantService.deletePlant(999)).rejects.toMatchObject({ code: 404 });
   });
+
+  it('should create and return a new plant', async () => {
+    const newPlant = { id: 1, name: 'Tulip', sunlightLevel: SunlightLevel.PARTIAL_SHADE };
+    (prisma.plant.create as jest.Mock).mockResolvedValue(newPlant);
+
+    const result = await plantService.createPlant({
+      name: 'Tulip',
+      sunlightLevel: SunlightLevel.PARTIAL_SHADE,
+    });
+
+    expect(prisma.plant.create).toHaveBeenCalledWith({
+      data: { name: 'Tulip', sunlightLevel: SunlightLevel.PARTIAL_SHADE },
+    });
+    expect(result).toEqual({
+      id: 1,
+      name: 'Tulip',
+      sunlightLevel: SunlightLevel.PARTIAL_SHADE,
+    });
+  });
+
+  it('should delete and return the deleted plant', async () => {
+    const deletedPlant = { id: 2, name: 'Daisy', sunlightLevel: SunlightLevel.SHADE };
+    (prisma.plant.delete as jest.Mock).mockResolvedValue(deletedPlant);
+
+    const result = await plantService.deletePlant(2);
+
+    expect(prisma.plant.delete).toHaveBeenCalledWith({ where: { id: 2 } });
+    expect(result).toEqual({
+      id: 2,
+      name: 'Daisy',
+      sunlightLevel: SunlightLevel.SHADE,
+    });
+  });
 });

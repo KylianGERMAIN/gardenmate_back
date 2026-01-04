@@ -80,13 +80,9 @@ async function deleteUser(userId: number): Promise<UserDTO> {
 }
 
 /**
- * Delete a user by ID
+ * Authenticate a user and return a JWT
  */
 async function authenticateUser(user: LoginUserBody): Promise<string> {
-  if (!user.login || !user.password) {
-    throw new CustomError('Login and password are required', 400);
-  }
-
   const existingUser = await prisma.user.findUnique({
     where: { login: user.login },
   });

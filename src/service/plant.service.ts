@@ -30,7 +30,7 @@ async function findPlants(params: PlantGetQuery): Promise<PlantDTO[]> {
 
   const plants = await prisma.plant.findMany({
     where: {
-      ...(sunlightQuery && { sunlightLevel: sunlightQuery as SunlightLevel }),
+      ...(sunlightQuery && { sunlightLevel: sunlightQuery }),
       ...(nameQuery && {
         name: {
           contains: nameQuery,

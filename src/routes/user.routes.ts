@@ -1,9 +1,17 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { authorize } from '../middleware/authHandler';
 import { userService } from '../service/user.service';
 import { asyncHandler } from '../middleware/asyncHandler';
-import { userCreateSchema, userGetSchema, userLoginSchema } from '../schemas/user';
+import {
+  CreateUserBody,
+  LoginUserBody,
+  userCreateSchema,
+  UserGetParams,
+  userGetSchema,
+  userLoginSchema,
+} from '../schemas/user';
 import { validate } from '../middleware/validate';
+import { RequestWithBody, RequestWithParams } from '../types/express';
 
 const router = Router();
 
@@ -11,7 +19,7 @@ const router = Router();
 router.post(
   '/login',
   validate(userLoginSchema, 'body'),
-  asyncHandler(async (req: Request, res: Response) => {
+  asyncHandler(async (req: RequestWithBody<LoginUserBody>, res: Response) => {
     const token = await userService.authenticateUser(req.body);
     res.status(200).json({ token });
   }),
@@ -22,8 +30,8 @@ router.get(
   '/:id',
   authorize(),
   validate(userGetSchema, 'params'),
-  asyncHandler(async (req: Request, res: Response) => {
-    const user = await userService.getUser(Number(req.params.id));
+  asyncHandler(async (req: RequestWithParams<UserGetParams>, res: Response) => {
+    const user = await userService.getUser(req.params.id);
     res.status(200).json(user);
   }),
 );
@@ -32,7 +40,7 @@ router.get(
 router.post(
   '/',
   validate(userCreateSchema, 'body'),
-  asyncHandler(async (req: Request, res: Response) => {
+  asyncHandler(async (req: RequestWithBody<CreateUserBody>, res: Response) => {
     const createdUser = await userService.createUser(req.body);
     res.status(201).json(createdUser);
   }),
@@ -43,8 +51,8 @@ router.delete(
   '/:id',
   authorize(['ADMIN']),
   validate(userGetSchema, 'params'),
-  asyncHandler(async (req: Request, res: Response) => {
-    const deletedUser = await userService.deleteUser(Number(req.params.id));
+  asyncHandler(async (req: RequestWithParams<UserGetParams>, res: Response) => {
+    const deletedUser = await userService.deleteUser(req.params.id);
     res.status(200).json(deletedUser);
   }),
 );
