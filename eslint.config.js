@@ -16,6 +16,7 @@ module.exports = [
       'no-console': ['error', { allow: ['warn', 'error'] }],
       '@typescript-eslint/no-explicit-any': 'error',
       'prettier/prettier': 'error',
+      '@typescript-eslint/no-unused-vars': ['error'],
     },
   },
 ];

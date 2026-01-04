@@ -1,8 +1,8 @@
 import { prisma } from '../prisma';
-import { userService, LoginUserDTO } from '../service/user.service';
+import { LoginUserBody } from '../schemas/user';
+import { userService } from '../service/user.service';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { Prisma } from '../generated/prisma/client';
 
 jest.mock('../prisma', () => ({
   prisma: {
@@ -39,7 +39,7 @@ describe('userService - login (mocked)', () => {
     (bcrypt.compare as jest.Mock).mockResolvedValue(true);
     (jwt.sign as jest.Mock).mockReturnValue('fakeToken');
 
-    const loginDto: LoginUserDTO = { login: 'testuser', password: 'Admin123*' };
+    const loginDto: LoginUserBody = { login: 'testuser', password: 'Admin123*' };
     const token = await userService.authenticateUser(loginDto);
 
     expect(token).toBe('fakeToken');
@@ -54,19 +54,14 @@ describe('userService - login (mocked)', () => {
     (prisma.user.findUnique as jest.Mock).mockResolvedValue(testUser);
     (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-    const loginDto: LoginUserDTO = { login: 'testuser', password: 'WrongPassword1!' };
+    const loginDto: LoginUserBody = { login: 'testuser', password: 'WrongPassword1!' };
     await expect(userService.authenticateUser(loginDto)).rejects.toMatchObject({ code: 401 });
   });
 
   it('should throw error if user does not exist', async () => {
     (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
 
-    const loginDto: LoginUserDTO = { login: 'nonexistent', password: 'Admin123*' };
+    const loginDto: LoginUserBody = { login: 'nonexistent', password: 'Admin123*' };
     await expect(userService.authenticateUser(loginDto)).rejects.toMatchObject({ code: 404 });
-  });
-
-  it('should throw error if login or password is missing', async () => {
-    const loginDto: LoginUserDTO = { login: '', password: '' };
-    await expect(userService.authenticateUser(loginDto)).rejects.toMatchObject({ code: 400 });
   });
 });

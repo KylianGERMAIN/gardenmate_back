@@ -1,79 +1,60 @@
-import { Router, Request, Response } from 'express';
-import { authorize, RequestWithUser } from '../middleware/auth';
-import { CreateUserDTO, LoginUserDTO, userService } from '../service/user.service';
-import { CustomError } from '../errors/CustomError';
+import { Router, Response } from 'express';
+import { authorize } from '../middleware/authHandler';
+import { userService } from '../service/user.service';
+import { asyncHandler } from '../middleware/asyncHandler';
+import {
+  CreateUserBody,
+  LoginUserBody,
+  userCreateSchema,
+  UserGetParams,
+  userGetSchema,
+  userLoginSchema,
+} from '../schemas/user';
+import { validate } from '../middleware/validate';
+import { RequestWithBody, RequestWithParams } from '../types/express';
 
 const router = Router();
 
 // POST /users/login
-router.post('/login', async (req: Request, res: Response) => {
-  const userLogin: LoginUserDTO = req.body;
-
-  try {
-    const token = await userService.authenticateUser(userLogin);
-    return res.status(200).json({ token });
-  } catch (error: unknown) {
-    if (error instanceof CustomError) {
-      return res.status(error.code).json({ message: error.message });
-    } else {
-      console.error(error);
-      return res.status(500).json({ message: 'Internal server error' });
-    }
-  }
-});
+router.post(
+  '/login',
+  validate(userLoginSchema, 'body'),
+  asyncHandler(async (req: RequestWithBody<LoginUserBody>, res: Response) => {
+    const token = await userService.authenticateUser(req.body);
+    res.status(200).json({ token });
+  }),
+);
 
 // GET /users/:id
-router.get('/:id', authorize(), async (req: RequestWithUser, res: Response) => {
-  const userId = Number(req.params.id);
-
-  try {
-    if (Number.isNaN(userId)) {
-      return res.status(400).json({ message: 'Invalid user id' });
-    }
-    const user = await userService.getUser(userId);
+router.get(
+  '/:id',
+  authorize(),
+  validate(userGetSchema, 'params'),
+  asyncHandler(async (req: RequestWithParams<UserGetParams>, res: Response) => {
+    const user = await userService.getUser(req.params.id);
     res.status(200).json(user);
-  } catch (error: unknown) {
-    if (error instanceof CustomError) {
-      return res.status(error.code).json({ message: error.message });
-    } else {
-      console.error(error);
-      return res.status(500).json({ message: 'Internal server error' });
-    }
-  }
-});
+  }),
+);
 
 // POST /users
-router.post('/', async (req: Request, res: Response) => {
-  try {
-    const user: CreateUserDTO = req.body;
-    const createdUser = await userService.createUser(user);
-    return res.status(201).json(createdUser);
-  } catch (error: unknown) {
-    if (error instanceof CustomError) {
-      return res.status(error.code).json({ message: error.message });
-    } else {
-      console.error(error);
-      return res.status(500).json({ message: 'Internal server error' });
-    }
-  }
-});
+router.post(
+  '/',
+  validate(userCreateSchema, 'body'),
+  asyncHandler(async (req: RequestWithBody<CreateUserBody>, res: Response) => {
+    const createdUser = await userService.createUser(req.body);
+    res.status(201).json(createdUser);
+  }),
+);
 
 // DELETE /users/:id
-router.delete('/:id', authorize(['ADMIN']), async (req: RequestWithUser, res: Response) => {
-  const userId = Number(req.params.id);
-  if (Number.isNaN(userId)) return res.status(400).json({ message: 'Invalid user id' });
-
-  try {
-    const deletedUser = await userService.deleteUser(userId);
-    return res.status(200).json(deletedUser);
-  } catch (error: unknown) {
-    if (error instanceof CustomError) {
-      return res.status(error.code).json({ message: error.message });
-    } else {
-      console.error(error);
-      return res.status(500).json({ message: 'Internal server error' });
-    }
-  }
-});
+router.delete(
+  '/:id',
+  authorize(['ADMIN']),
+  validate(userGetSchema, 'params'),
+  asyncHandler(async (req: RequestWithParams<UserGetParams>, res: Response) => {
+    const deletedUser = await userService.deleteUser(req.params.id);
+    res.status(200).json(deletedUser);
+  }),
+);
 
 export default router;

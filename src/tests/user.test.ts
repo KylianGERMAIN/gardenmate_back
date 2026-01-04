@@ -1,6 +1,7 @@
 import { prisma } from '../prisma';
-import { userService, CreateUserDTO } from '../service/user.service';
+import { userService } from '../service/user.service';
 import { Prisma } from '../generated/prisma/client';
+import { CreateUserBody } from '../schemas/user';
 
 jest.mock('../prisma', () => ({
   prisma: {
@@ -17,7 +18,7 @@ describe('userService', () => {
     jest.clearAllMocks();
   });
 
-  const testUser: CreateUserDTO = {
+  const testUser: CreateUserBody = {
     login: 'testuser',
     password: 'Admin123*',
     role: 'USER',

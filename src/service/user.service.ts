@@ -1,53 +1,22 @@
 import { CustomError } from '../errors/CustomError';
 import { UserRole } from '../generated/prisma/enums';
-import { JwtPayload } from '../middleware/auth';
+import { JwtPayload } from '../middleware/authHandler';
 import { prisma } from '../prisma';
 import { Prisma } from '../generated/prisma/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { CreateUserBody, LoginUserBody } from '../schemas/user';
 
-export interface CreateUserDTO {
-  login: string;
-  password: string;
-  role: UserRole;
-}
-
-export interface GetUserDTO {
+export interface UserDTO {
   id: number;
   login: string;
   role: UserRole;
 }
 
-export interface LoginUserDTO {
-  login: string;
-  password: string;
-}
-
-const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
-
-/**
- * Validate user input
- */
-function validateUserInput(user: CreateUserDTO) {
-  if (!user.login || !user.password) {
-    throw new CustomError('Login and password are required');
-  }
-  if (user.login.length < 5) {
-    throw new CustomError('Login must be at least 5 characters long');
-  }
-  if (!PASSWORD_REGEX.test(user.password)) {
-    throw new CustomError(
-      'Password must contain at least 8 characters, including one uppercase letter, one lowercase letter, one number, and one special character',
-    );
-  }
-}
-
 /**
  * Create a new user
  */
-async function createUser(user: CreateUserDTO): Promise<GetUserDTO> {
-  validateUserInput(user);
-
+async function createUser(user: CreateUserBody): Promise<UserDTO> {
   const existingUser = await prisma.user.findUnique({
     where: { login: user.login },
   });
@@ -75,7 +44,7 @@ async function createUser(user: CreateUserDTO): Promise<GetUserDTO> {
 /**
  * Get a user by ID
  */
-async function getUser(userId: number): Promise<GetUserDTO> {
+async function getUser(userId: number): Promise<UserDTO> {
   const existingUser = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -95,7 +64,7 @@ async function getUser(userId: number): Promise<GetUserDTO> {
 /**
  * Delete a user by ID
  */
-async function deleteUser(userId: number): Promise<GetUserDTO> {
+async function deleteUser(userId: number): Promise<UserDTO> {
   try {
     const deletedUser = await prisma.user.delete({
       where: { id: userId },
@@ -111,13 +80,9 @@ async function deleteUser(userId: number): Promise<GetUserDTO> {
 }
 
 /**
- * Delete a user by ID
+ * Authenticate a user and return a JWT
  */
-async function authenticateUser(user: LoginUserDTO): Promise<string> {
-  if (!user.login || !user.password) {
-    throw new CustomError('Login and password are required', 400);
-  }
-
+async function authenticateUser(user: LoginUserBody): Promise<string> {
   const existingUser = await prisma.user.findUnique({
     where: { login: user.login },
   });
@@ -150,5 +115,4 @@ export const userService = {
   getUser,
   deleteUser,
   authenticateUser,
-  validateUserInput,
 };

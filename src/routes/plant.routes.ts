@@ -1,68 +1,51 @@
-import { Router, Request, Response } from 'express';
-import { authorize } from '../middleware/auth';
-import { CustomError } from '../errors/CustomError';
-import { CreatePlantDTO, plantService } from '../service/plant.service';
+import { Router, Response } from 'express';
+import { authorize } from '../middleware/authHandler';
+import { plantService } from '../service/plant.service';
+import { asyncHandler } from '../middleware/asyncHandler';
+import {
+  PlantCreateBody,
+  plantCreateSchema,
+  PlantDeleteParams,
+  plantDeleteSchema,
+  PlantGetQuery,
+  plantGetSchema,
+} from '../schemas/plant';
+import { validate } from '../middleware/validate';
+import { RequestWithBody, RequestWithParams, RequestWithQuery } from '../types/express';
 
 const router = Router();
 
 // GET /plants
-router.get('/', authorize(), async (req: Request, res: Response) => {
-  try {
-    const { sunlightLevel, name } = req.query as unknown as {
-      sunlightLevel?: string;
-      name?: string;
-    };
-
-    const plants = await plantService.findPlants({
-      sunlightLevel: sunlightLevel,
-      name: name,
-    });
-
+router.get(
+  '/',
+  authorize(),
+  validate(plantGetSchema, 'query'),
+  asyncHandler(async (req: RequestWithQuery<PlantGetQuery>, res: Response) => {
+    const plants = await plantService.findPlants(req.query);
     res.status(200).json(plants);
-  } catch (error: unknown) {
-    if (error instanceof CustomError) {
-      return res.status(error.code).json({ message: error.message });
-    } else {
-      console.error(error);
-      return res.status(500).json({ message: 'Internal server error' });
-    }
-  }
-});
+  }),
+);
 
 // POST /plants
-router.post('/', authorize(['ADMIN']), async (req: Request, res: Response) => {
-  try {
-    const plant: CreatePlantDTO = req.body;
-    const newPlant = await plantService.createPlant(plant);
+router.post(
+  '/',
+  authorize(['ADMIN']),
+  validate(plantCreateSchema, 'body'),
+  asyncHandler(async (req: RequestWithBody<PlantCreateBody>, res: Response) => {
+    const newPlant = await plantService.createPlant(req.body);
     res.status(201).json(newPlant);
-  } catch (error: unknown) {
-    if (error instanceof CustomError) {
-      return res.status(error.code).json({ message: error.message });
-    } else {
-      console.error(error);
-      return res.status(500).json({ message: 'Internal server error' });
-    }
-  }
-});
+  }),
+);
 
 // DELETE /plants/:id
-router.delete('/:id', authorize(['ADMIN']), async (req: Request, res: Response) => {
-  try {
-    const plantId = Number(req.params.id);
-
-    if (Number.isNaN(plantId)) {
-      return res.status(400).json({ message: 'Invalid plant id' });
-    }
-    const deletedPlant = await plantService.deletePlant(plantId);
+router.delete(
+  '/:id',
+  authorize(['ADMIN']),
+  validate(plantDeleteSchema, 'params'),
+  asyncHandler(async (req: RequestWithParams<PlantDeleteParams>, res: Response) => {
+    const deletedPlant = await plantService.deletePlant(req.params.id);
     res.status(200).json(deletedPlant);
-  } catch (error: unknown) {
-    if (error instanceof CustomError) {
-      return res.status(error.code).json({ message: error.message });
-    } else {
-      console.error(error);
-      return res.status(500).json({ message: 'Internal server error' });
-    }
-  }
-});
+  }),
+);
 
 export default router;
