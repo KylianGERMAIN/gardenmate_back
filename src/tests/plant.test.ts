@@ -2,6 +2,7 @@ import { plantService, PlantDTO, GetPlantsParams } from '../service/plant.servic
 import { prisma } from '../prisma';
 import { CustomError } from '../errors/CustomError';
 import { SunlightLevel } from '../generated/prisma/enums';
+import { Prisma } from '../generated/prisma/client';
 
 // Mock Prisma
 jest.mock('../prisma', () => ({
@@ -92,18 +93,36 @@ describe('plantService.createPlant', () => {
   });
 
   it('should throw error for existing plant name', async () => {
-    (prisma.plant.findUnique as jest.Mock).mockResolvedValue(mockPlant);
+    const prismaError = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+      code: 'P2002',
+      clientVersion: '5.x.x',
+    });
 
-    const plant = plantService.createPlant({ name: 'Rose', sunlightLevel: SunlightLevel.FULL_SUN });
-    await expect(plant).rejects.toThrow(CustomError);
-    await expect(plant).rejects.toMatchObject({ code: 409 });
+    (prisma.plant.create as jest.Mock).mockRejectedValue(prismaError);
+
+    await expect(
+      plantService.createPlant({
+        name: 'Rose',
+        sunlightLevel: SunlightLevel.FULL_SUN,
+      }),
+    ).rejects.toMatchObject({
+      code: 409,
+    });
   });
 
   it('should call prisma.plant.create with correct data', async () => {
-    (prisma.plant.findUnique as jest.Mock).mockResolvedValue(null);
-    (prisma.plant.create as jest.Mock).mockResolvedValue(undefined);
+    const createdPlant = {
+      id: 1,
+      name: 'Rose',
+      sunlightLevel: SunlightLevel.FULL_SUN,
+    };
 
-    await plantService.createPlant(mockPlant);
+    (prisma.plant.create as jest.Mock).mockResolvedValue(createdPlant);
+
+    await plantService.createPlant({
+      name: 'Rose',
+      sunlightLevel: SunlightLevel.FULL_SUN,
+    });
 
     expect(prisma.plant.create).toHaveBeenCalledWith({
       data: {
@@ -122,16 +141,24 @@ describe('plantService.deletePlant', () => {
   });
 
   it('should throw error if plant does not exist', async () => {
-    (prisma.plant.findUnique as jest.Mock).mockResolvedValue(null);
+    const prismaError = new Prisma.PrismaClientKnownRequestError(
+      'Record to delete does not exist.',
+      { code: 'P2025', clientVersion: '5.x.x' },
+    );
 
-    const plant = plantService.deletePlant(1);
-    await expect(plant).rejects.toThrow(CustomError);
-    await expect(plant).rejects.toMatchObject({ code: 404 });
+    (prisma.plant.delete as jest.Mock).mockRejectedValue(prismaError);
+
+    await expect(plantService.deletePlant(1)).rejects.toMatchObject({ code: 404 });
   });
 
   it('should call prisma.plant.delete with correct id', async () => {
-    (prisma.plant.findUnique as jest.Mock).mockResolvedValue(mockPlant);
-    (prisma.plant.delete as jest.Mock).mockResolvedValue(undefined);
+    const deletedPlant = {
+      id: 1,
+      name: 'Rose',
+      sunlightLevel: SunlightLevel.FULL_SUN,
+    };
+
+    (prisma.plant.delete as jest.Mock).mockResolvedValue(deletedPlant);
 
     await plantService.deletePlant(1);
 
