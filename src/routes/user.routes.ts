@@ -5,6 +5,9 @@ import { asyncHandler } from '../middleware/asyncHandler';
 import {
   CreateUserBody,
   LoginUserBody,
+  PlantAssignParams,
+  plantAssignParamsSchema,
+  plantAssignSchema,
   userCreateSchema,
   UserGetParams,
   userGetSchema,
@@ -54,6 +57,17 @@ router.delete(
   asyncHandler(async (req: RequestWithParams<UserGetParams>, res: Response) => {
     const deletedUser = await userService.deleteUser(req.params.id);
     res.status(200).json(deletedUser);
+  }),
+);
+
+// POST /users/:userId/plants
+router.post(
+  '/:userId/plants',
+  authorize(),
+  validate(plantAssignParamsSchema, 'params'),
+  validate(plantAssignSchema, 'body'),
+  asyncHandler(async (req: RequestWithParams<PlantAssignParams>, res: Response) => {
+    res.status(200).json({ message: 'Not implemented yet' });
   }),
 );
 
