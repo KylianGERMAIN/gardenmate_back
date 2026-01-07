@@ -31,7 +31,15 @@ export type PlantAssignParams = z.infer<typeof plantAssignParamsSchema>;
 
 export const plantAssignSchema = z.object({
   plantId: z.number().int().positive('Plant ID must be a positive integer'),
-  plantedAt: z.string().optional(),
-  lastWateredAt: z.string().optional(),
+  plantedAt: z
+    .string()
+    .optional()
+    .refine((val) => !val || !isNaN(Date.parse(val)), { message: 'Invalid date format' })
+    .transform((val) => (val ? new Date(val) : undefined)),
+  lastWateredAt: z
+    .string()
+    .optional()
+    .refine((val) => !val || !isNaN(Date.parse(val)), { message: 'Invalid date format' })
+    .transform((val) => (val ? new Date(val) : undefined)),
 });
 export type PlantAssignBody = z.infer<typeof plantAssignSchema>;

@@ -67,7 +67,13 @@ router.post(
   validate(plantAssignParamsSchema, 'params'),
   validate(plantAssignSchema, 'body'),
   asyncHandler(async (req: RequestWithParams<PlantAssignParams>, res: Response) => {
-    res.status(200).json({ message: 'Not implemented yet' });
+    const createdUserPlant = await userService.assignPlantToUser({
+      userId: req.params.userId,
+      plantId: req.body.plantId,
+      plantedAt: req.body.plantedAt,
+      lastWateredAt: req.body.lastWateredAt,
+    });
+    res.status(200).json(createdUserPlant);
   }),
 );
 

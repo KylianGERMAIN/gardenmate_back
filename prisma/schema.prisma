@@ -52,5 +52,4 @@ model UserPlant {
   plantId          Int
   plantedAt        DateTime?
   lastWateredAt    DateTime?
-  photoUrl         String?
 }
