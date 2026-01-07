@@ -23,9 +23,9 @@ model Plant {
   id            Int      @id @default(autoincrement())
   name          String   @unique
   sunlightLevel SunlightLevel
+  userPlants UserPlant[]
 
   @@map("plants")
-  userPlants UserPlant[]
 }
 
 
@@ -52,4 +52,6 @@ model UserPlant {
   plantId          Int
   plantedAt        DateTime?
   lastWateredAt    DateTime?
+
+  @@map("user_plants")
 }

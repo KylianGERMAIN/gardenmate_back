@@ -14,10 +14,11 @@ export interface UserDTO {
 }
 
 export interface UserPlantDTO {
+  id?: number;
   userId: number;
   plantId: number;
-  plantedAt?: Date;
-  lastWateredAt?: Date;
+  plantedAt?: Date | null;
+  lastWateredAt?: Date | null;
 }
 
 /**
@@ -82,6 +83,12 @@ async function deleteUser(userId: number): Promise<UserDTO> {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
       throw new CustomError(`The user with id '${userId}' doesn't exist`, 404);
     }
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+      throw new CustomError(
+        `Cannot delete user id='${userId}' because it is linked to plants`,
+        409,
+      );
+    }
     throw error;
   }
 }
@@ -117,10 +124,22 @@ async function authenticateUser(user: LoginUserBody): Promise<string> {
   );
 }
 
-async function assignPlantToUser(userPlant: UserPlantDTO): Promise<void> {
+async function assignPlantToUser(userPlant: UserPlantDTO): Promise<UserPlantDTO> {
   try {
-    await prisma.userPlant.create({
-      data: userPlant,
+    return await prisma.userPlant.create({
+      data: {
+        userId: userPlant.userId,
+        plantId: userPlant.plantId,
+        plantedAt: userPlant.plantedAt,
+        lastWateredAt: userPlant.lastWateredAt,
+      },
+      select: {
+        id: true,
+        userId: true,
+        plantId: true,
+        plantedAt: true,
+        lastWateredAt: true,
+      },
     });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {

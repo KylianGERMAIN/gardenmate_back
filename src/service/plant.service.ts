@@ -69,6 +69,12 @@ async function deletePlant(plantId: number): Promise<PlantDTO> {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
       throw new CustomError('Plant not found', 404);
     }
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+      throw new CustomError(
+        `Cannot delete plant id='${plantId}' because it is assigned to users`,
+        409,
+      );
+    }
     throw error;
   }
 }
