@@ -37,13 +37,13 @@ router.post(
   }),
 );
 
-// DELETE /plants/:id
+// DELETE /plants/:uid
 router.delete(
-  '/:id',
+  '/:uid',
   authorize(['ADMIN']),
   validate(plantDeleteSchema, 'params'),
   asyncHandler(async (req: RequestWithParams<PlantDeleteParams>, res: Response) => {
-    const deletedPlant = await plantService.deletePlant(req.params.id);
+    const deletedPlant = await plantService.deletePlant(req.params.uid);
     res.status(200).json(deletedPlant);
   }),
 );

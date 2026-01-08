@@ -18,7 +18,7 @@ describe('plantService - unit tests', () => {
 
   it('should call prisma.plant.findMany with correct filter', async () => {
     (prisma.plant.findMany as jest.Mock).mockResolvedValue([
-      { id: 1, name: 'Rose', sunlightLevel: SunlightLevel.FULL_SUN },
+      { uid: 'plant-uid-1', name: 'Rose', sunlightLevel: SunlightLevel.FULL_SUN },
     ]);
 
     const result = await plantService.findPlants({ sunlightLevel: SunlightLevel.FULL_SUN });
@@ -48,11 +48,15 @@ describe('plantService - unit tests', () => {
     );
     (prisma.plant.delete as jest.Mock).mockRejectedValue(prismaError);
 
-    await expect(plantService.deletePlant(999)).rejects.toMatchObject({ code: 404 });
+    await expect(plantService.deletePlant('non-existent-uid')).rejects.toMatchObject({ code: 404 });
   });
 
   it('should create and return a new plant', async () => {
-    const newPlant = { id: 1, name: 'Tulip', sunlightLevel: SunlightLevel.PARTIAL_SHADE };
+    const newPlant = {
+      uid: 'plant-uid-1',
+      name: 'Tulip',
+      sunlightLevel: SunlightLevel.PARTIAL_SHADE,
+    };
     (prisma.plant.create as jest.Mock).mockResolvedValue(newPlant);
 
     const result = await plantService.createPlant({
@@ -64,21 +68,21 @@ describe('plantService - unit tests', () => {
       data: { name: 'Tulip', sunlightLevel: SunlightLevel.PARTIAL_SHADE },
     });
     expect(result).toEqual({
-      id: 1,
+      uid: 'plant-uid-1',
       name: 'Tulip',
       sunlightLevel: SunlightLevel.PARTIAL_SHADE,
     });
   });
 
   it('should delete and return the deleted plant', async () => {
-    const deletedPlant = { id: 2, name: 'Daisy', sunlightLevel: SunlightLevel.SHADE };
+    const deletedPlant = { uid: 'plant-uid-2', name: 'Daisy', sunlightLevel: SunlightLevel.SHADE };
     (prisma.plant.delete as jest.Mock).mockResolvedValue(deletedPlant);
 
-    const result = await plantService.deletePlant(2);
+    const result = await plantService.deletePlant('plant-uid-2');
 
-    expect(prisma.plant.delete).toHaveBeenCalledWith({ where: { id: 2 } });
+    expect(prisma.plant.delete).toHaveBeenCalledWith({ where: { uid: 'plant-uid-2' } });
     expect(result).toEqual({
-      id: 2,
+      uid: 'plant-uid-2',
       name: 'Daisy',
       sunlightLevel: SunlightLevel.SHADE,
     });

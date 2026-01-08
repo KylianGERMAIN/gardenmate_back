@@ -20,17 +20,17 @@ export const userLoginSchema = z.object({
 export type LoginUserBody = z.infer<typeof userLoginSchema>;
 
 export const userGetSchema = z.object({
-  id: z.string().regex(/^\d+$/, 'Invalid user id').transform(Number),
+  uid: z.string().uuid({ message: 'Invalid user uid' }),
 });
 export type UserGetParams = z.infer<typeof userGetSchema>;
 
 export const plantAssignParamsSchema = z.object({
-  userId: z.string().regex(/^\d+$/, 'Invalid user id').transform(Number),
+  userUid: z.string().uuid('Invalid user uid'),
 });
 export type PlantAssignParams = z.infer<typeof plantAssignParamsSchema>;
 
 export const plantAssignSchema = z.object({
-  plantId: z.number().int().positive('Plant ID must be a positive integer'),
+  plantUid: z.string().uuid('Invalid plant uid'),
   plantedAt: z
     .string()
     .optional()

@@ -28,7 +28,7 @@ describe('userService - login (mocked)', () => {
   });
 
   const testUser = {
-    id: 1,
+    uid: 'user-uid-1',
     login: 'testuser',
     password: 'hashedPassword',
     role: 'USER',
@@ -45,9 +45,13 @@ describe('userService - login (mocked)', () => {
     expect(token).toBe('fakeToken');
     expect(prisma.user.findUnique).toHaveBeenCalledWith({ where: { login: 'testuser' } });
     expect(bcrypt.compare).toHaveBeenCalledWith('Admin123*', 'hashedPassword');
-    expect(jwt.sign).toHaveBeenCalledWith({ id: 1, login: 'testuser', role: 'USER' }, JWT_SECRET, {
-      expiresIn: '1h',
-    });
+    expect(jwt.sign).toHaveBeenCalledWith(
+      { uid: 'user-uid-1', login: 'testuser', role: 'USER' },
+      JWT_SECRET,
+      {
+        expiresIn: '1h',
+      },
+    );
   });
 
   it('should throw error for invalid password', async () => {

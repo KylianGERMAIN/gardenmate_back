@@ -20,7 +20,7 @@ enum SunlightLevel {
   SHADE
 }
 model Plant {
-  id            Int      @id @default(autoincrement())
+  uid           String   @id @default(uuid())
   name          String   @unique
   sunlightLevel SunlightLevel
   userPlants UserPlant[]
@@ -35,23 +35,23 @@ enum UserRole {
 }
 
 model User {
-  id            Int      @id @default(autoincrement())
-  login         String   @unique
-  password      String
-  role          UserRole
+  uid       String   @id @default(uuid())
+  login     String   @unique
+  password  String
+  role      UserRole
   userPlants UserPlant[]
 
   @@map("users")
 }
 
 model UserPlant {
-  id               Int          @id @default(autoincrement())
-  user             User         @relation(fields: [userId], references: [id])
-  userId           Int
-  plant            Plant        @relation(fields: [plantId], references: [id])
-  plantId          Int
-  plantedAt        DateTime?
-  lastWateredAt    DateTime?
+  uid            String   @id @default(uuid())
+  user           User     @relation(fields: [userUid], references: [uid])
+  userUid        String
+  plant          Plant    @relation(fields: [plantUid], references: [uid])
+  plantUid       String
+  plantedAt      DateTime?
+  lastWateredAt  DateTime?
 
   @@map("user_plants")
 }

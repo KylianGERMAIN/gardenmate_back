@@ -25,6 +25,6 @@ export const plantGetSchema = z.object({
 export type PlantGetQuery = z.infer<typeof plantGetSchema>;
 
 export const plantDeleteSchema = z.object({
-  id: z.string().regex(/^\d+$/, 'Invalid plant id').transform(Number),
+  uid: z.string().uuid({ message: 'Invalid plant uid' }),
 });
 export type PlantDeleteParams = z.infer<typeof plantDeleteSchema>;
