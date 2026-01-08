@@ -1,5 +1,5 @@
 import { prisma } from '../prisma';
-import { userService } from '../service/user.service';
+import { UserPlantDTO, userService } from '../service/user.service';
 import { Prisma } from '../generated/prisma/client';
 import { CreateUserBody } from '../schemas/user';
 
@@ -9,6 +9,9 @@ jest.mock('../prisma', () => ({
       findUnique: jest.fn(),
       create: jest.fn(),
       delete: jest.fn(),
+    },
+    userPlant: {
+      create: jest.fn(),
     },
   },
 }));
@@ -78,5 +81,60 @@ describe('userService', () => {
     (prisma.user.delete as jest.Mock).mockRejectedValue(prismaError);
 
     await expect(userService.deleteUser(1)).rejects.toMatchObject({ code: 404 });
+  });
+});
+
+describe('userService userPlant', () => {
+  type PrismaUserPlantMock = { userPlant: { create: jest.Mock } };
+  const prismaUserPlantCreateMock = (prisma as unknown as PrismaUserPlantMock).userPlant.create;
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const testUserPlant: UserPlantDTO = {
+    id: 1,
+    userId: 1,
+    plantId: 1,
+    plantedAt: new Date(),
+    lastWateredAt: new Date(),
+  };
+
+  it('should assign plant to user successfully', async () => {
+    prismaUserPlantCreateMock.mockResolvedValue(testUserPlant);
+
+    const result = await userService.assignPlantToUser(testUserPlant);
+    expect(result).toEqual(testUserPlant);
+    expect(prismaUserPlantCreateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          userId: testUserPlant.userId,
+          plantId: testUserPlant.plantId,
+          plantedAt: testUserPlant.plantedAt,
+          lastWateredAt: testUserPlant.lastWateredAt,
+        },
+        select: expect.any(Object),
+      }),
+    );
+  });
+
+  it('should throw error if user or plant does not exist', async () => {
+    const prismaError = new Prisma.PrismaClientKnownRequestError('Record not found', {
+      code: 'P2025',
+      clientVersion: '5.x.x',
+    });
+    prismaUserPlantCreateMock.mockRejectedValue(prismaError);
+
+    await expect(userService.assignPlantToUser(testUserPlant)).rejects.toMatchObject({ code: 404 });
+  });
+
+  it('should throw error for foreign key constraint violation', async () => {
+    const prismaError = new Prisma.PrismaClientKnownRequestError('Foreign key constraint failed', {
+      code: 'P2003',
+      clientVersion: '5.x.x',
+    });
+    prismaUserPlantCreateMock.mockRejectedValue(prismaError);
+
+    await expect(userService.assignPlantToUser(testUserPlant)).rejects.toMatchObject({ code: 400 });
   });
 });

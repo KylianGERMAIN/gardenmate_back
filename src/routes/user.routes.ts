@@ -5,13 +5,17 @@ import { asyncHandler } from '../middleware/asyncHandler';
 import {
   CreateUserBody,
   LoginUserBody,
+  PlantAssignBody,
+  PlantAssignParams,
+  plantAssignParamsSchema,
+  plantAssignSchema,
   userCreateSchema,
   UserGetParams,
   userGetSchema,
   userLoginSchema,
 } from '../schemas/user';
 import { validate } from '../middleware/validate';
-import { RequestWithBody, RequestWithParams } from '../types/express';
+import { RequestWithBody, RequestWithParams, RequestWithParamsAndBody } from '../types/express';
 
 const router = Router();
 
@@ -55,6 +59,25 @@ router.delete(
     const deletedUser = await userService.deleteUser(req.params.id);
     res.status(200).json(deletedUser);
   }),
+);
+
+// POST /users/:userId/plants
+router.post(
+  '/:userId/plants',
+  authorize(),
+  validate(plantAssignParamsSchema, 'params'),
+  validate(plantAssignSchema, 'body'),
+  asyncHandler(
+    async (req: RequestWithParamsAndBody<PlantAssignParams, PlantAssignBody>, res: Response) => {
+      const createdUserPlant = await userService.assignPlantToUser({
+        userId: req.params.userId,
+        plantId: req.body.plantId,
+        plantedAt: req.body.plantedAt,
+        lastWateredAt: req.body.lastWateredAt,
+      });
+      res.status(201).json(createdUserPlant);
+    },
+  ),
 );
 
 export default router;

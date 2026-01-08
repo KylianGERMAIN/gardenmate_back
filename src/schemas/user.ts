@@ -23,3 +23,23 @@ export const userGetSchema = z.object({
   id: z.string().regex(/^\d+$/, 'Invalid user id').transform(Number),
 });
 export type UserGetParams = z.infer<typeof userGetSchema>;
+
+export const plantAssignParamsSchema = z.object({
+  userId: z.string().regex(/^\d+$/, 'Invalid user id').transform(Number),
+});
+export type PlantAssignParams = z.infer<typeof plantAssignParamsSchema>;
+
+export const plantAssignSchema = z.object({
+  plantId: z.number().int().positive('Plant ID must be a positive integer'),
+  plantedAt: z
+    .string()
+    .optional()
+    .refine((val) => !val || !isNaN(Date.parse(val)), { message: 'Invalid date format' })
+    .transform((val) => (val ? new Date(val) : undefined)),
+  lastWateredAt: z
+    .string()
+    .optional()
+    .refine((val) => !val || !isNaN(Date.parse(val)), { message: 'Invalid date format' })
+    .transform((val) => (val ? new Date(val) : undefined)),
+});
+export type PlantAssignBody = z.infer<typeof plantAssignSchema>;

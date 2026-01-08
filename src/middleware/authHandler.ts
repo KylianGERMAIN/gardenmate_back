@@ -12,34 +12,38 @@ export interface RequestWithUser extends Request {
   id?: number;
 }
 
+type Roles = string[] | undefined;
+
+function normalizeRoles(rolesNeeded?: string[]): Roles {
+  return rolesNeeded && rolesNeeded.length > 0 ? rolesNeeded : undefined;
+}
+
+function getResourceOwnerId(req: Request): number | undefined {
+  const raw = (req.params as Record<string, unknown> | undefined)?.userId ?? req.params?.id;
+  return typeof raw === 'string' || typeof raw === 'number' ? Number(raw) : undefined;
+}
+
 export const authorize =
   (rolesNeeded?: string[]) => (req: RequestWithUser, res: Response, next: NextFunction) => {
     const authHeader = req.headers.authorization;
     const JWT_SECRET = process.env.JWT_SECRET;
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader?.startsWith('Bearer '))
       return res.status(401).json({ message: 'Unauthorized' });
-    }
-
-    if (!JWT_SECRET) {
-      return res.status(500).json({ message: 'JWT secret is not defined' });
-    }
-
-    const token = authHeader.split(' ')[1];
+    if (!JWT_SECRET) return res.status(500).json({ message: 'JWT secret is not defined' });
 
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
-      const resourceOwnerId = Number(req.params.id);
+      const decoded = jwt.verify(authHeader.split(' ')[1], JWT_SECRET) as JwtPayload;
+      const roles = normalizeRoles(rolesNeeded);
+      const ownerId = getResourceOwnerId(req);
 
-      const hasRole = rolesNeeded ? rolesNeeded.includes(decoded.role) : true;
-      const isOwner = decoded.id === resourceOwnerId;
+      const hasRole = roles ? roles.includes(decoded.role) : false;
+      const isOwner = ownerId !== undefined && decoded.id === ownerId;
 
-      if (!hasRole && !isOwner) {
-        return res.status(403).json({ message: 'Forbidden' });
-      }
+      const authorized = roles ? hasRole || isOwner : ownerId === undefined ? true : isOwner;
+      if (!authorized) return res.status(403).json({ message: 'Forbidden' });
+
       req.user = decoded;
-
-      next();
+      return next();
     } catch {
       return res.status(401).json({ message: 'Unauthorized' });
     }
