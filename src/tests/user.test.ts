@@ -29,7 +29,7 @@ describe('userService', () => {
 
   it('should throw error if user already exists', async () => {
     (prisma.user.findUnique as jest.Mock).mockResolvedValue({
-      id: 1,
+      uid: 'user-uid-1',
       login: 'testuser',
       password: 'hashed',
       role: 'USER',
@@ -41,13 +41,13 @@ describe('userService', () => {
   it('should create user with hashed password', async () => {
     (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
     (prisma.user.create as jest.Mock).mockImplementation(async (data) => ({
-      id: 1,
+      uid: 'user-uid-1',
       login: data.data.login,
       role: data.data.role,
     }));
 
     const result = await userService.createUser(testUser);
-    expect(result).toEqual({ id: 1, login: 'testuser', role: 'USER' });
+    expect(result).toEqual({ uid: 'user-uid-1', login: 'testuser', role: 'USER' });
     expect(prisma.user.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ login: 'testuser', role: 'USER' }),
@@ -58,18 +58,18 @@ describe('userService', () => {
 
   it('should throw error if user not found on getUser', async () => {
     (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
-    await expect(userService.getUser(1)).rejects.toMatchObject({ code: 404 });
+    await expect(userService.getUser('user-uid-1')).rejects.toMatchObject({ code: 404 });
   });
 
   it('should delete an existing user', async () => {
-    const mockDeletedUser = { id: 1, login: 'testuser', role: 'USER' };
+    const mockDeletedUser = { uid: 'user-uid-1', login: 'testuser', role: 'USER' };
     (prisma.user.delete as jest.Mock).mockResolvedValue(mockDeletedUser);
 
-    const result = await userService.deleteUser(1);
+    const result = await userService.deleteUser('user-uid-1');
     expect(result).toEqual(mockDeletedUser);
     expect(prisma.user.delete).toHaveBeenCalledWith({
-      where: { id: 1 },
-      select: { id: true, login: true, role: true },
+      where: { uid: 'user-uid-1' },
+      select: { uid: true, login: true, role: true },
     });
   });
 
@@ -80,7 +80,7 @@ describe('userService', () => {
     });
     (prisma.user.delete as jest.Mock).mockRejectedValue(prismaError);
 
-    await expect(userService.deleteUser(1)).rejects.toMatchObject({ code: 404 });
+    await expect(userService.deleteUser('user-uid-1')).rejects.toMatchObject({ code: 404 });
   });
 });
 
@@ -93,9 +93,8 @@ describe('userService userPlant', () => {
   });
 
   const testUserPlant: UserPlantDTO = {
-    id: 1,
-    userId: 1,
-    plantId: 1,
+    userUid: 'user-uid-1',
+    plantUid: 'plant-uid-1',
     plantedAt: new Date(),
     lastWateredAt: new Date(),
   };
@@ -108,12 +107,18 @@ describe('userService userPlant', () => {
     expect(prismaUserPlantCreateMock).toHaveBeenCalledWith(
       expect.objectContaining({
         data: {
-          userId: testUserPlant.userId,
-          plantId: testUserPlant.plantId,
+          userUid: testUserPlant.userUid,
+          plantUid: testUserPlant.plantUid,
           plantedAt: testUserPlant.plantedAt,
           lastWateredAt: testUserPlant.lastWateredAt,
         },
-        select: expect.any(Object),
+        select: {
+          uid: true,
+          userUid: true,
+          plantUid: true,
+          plantedAt: true,
+          lastWateredAt: true,
+        },
       }),
     );
   });

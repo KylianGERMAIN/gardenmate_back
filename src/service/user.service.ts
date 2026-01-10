@@ -6,17 +6,18 @@ import { Prisma } from '../generated/prisma/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { CreateUserBody, LoginUserBody } from '../schemas/user';
+import { utils } from '../utils/uid';
 
 export interface UserDTO {
-  id: number;
+  uid: string;
   login: string;
   role: UserRole;
 }
 
 export interface UserPlantDTO {
-  id?: number;
-  userId: number;
-  plantId: number;
+  uid?: string;
+  userUid: string;
+  plantUid: string;
   plantedAt?: Date | null;
   lastWateredAt?: Date | null;
 }
@@ -42,7 +43,7 @@ async function createUser(user: CreateUserBody): Promise<UserDTO> {
       role: 'USER',
     },
     select: {
-      id: true,
+      uid: true,
       login: true,
       role: true,
     },
@@ -50,42 +51,44 @@ async function createUser(user: CreateUserBody): Promise<UserDTO> {
 }
 
 /**
- * Get a user by ID
+ * Get a user by uid
  */
-async function getUser(userId: number): Promise<UserDTO> {
+async function getUser(userUid: string): Promise<UserDTO> {
+  const normalizedUid = utils.normalizeUid(userUid);
   const existingUser = await prisma.user.findUnique({
-    where: { id: userId },
+    where: { uid: normalizedUid },
     select: {
-      id: true,
+      uid: true,
       login: true,
       role: true,
     },
   });
 
   if (!existingUser) {
-    throw new CustomError(`The user with id '${userId}' doesn't exist`, 404);
+    throw new CustomError(`The user with uid '${userUid}' doesn't exist`, 404);
   }
 
   return existingUser;
 }
 
 /**
- * Delete a user by ID
+ * Delete a user by uid
  */
-async function deleteUser(userId: number): Promise<UserDTO> {
+async function deleteUser(userUid: string): Promise<UserDTO> {
+  const normalizedUid = utils.normalizeUid(userUid);
   try {
     const deletedUser = await prisma.user.delete({
-      where: { id: userId },
-      select: { id: true, login: true, role: true },
+      where: { uid: normalizedUid },
+      select: { uid: true, login: true, role: true },
     });
     return deletedUser;
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-      throw new CustomError(`The user with id '${userId}' doesn't exist`, 404);
+      throw new CustomError(`The user with uid '${userUid}' doesn't exist`, 404);
     }
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
       throw new CustomError(
-        `Cannot delete user id='${userId}' because it is linked to plants`,
+        `Cannot delete user uid='${userUid}' because it is linked to plants`,
         409,
       );
     }
@@ -116,7 +119,7 @@ async function authenticateUser(user: LoginUserBody): Promise<string> {
   }
 
   return jwt.sign(
-    { id: existingUser.id, login: existingUser.login, role: existingUser.role } as JwtPayload,
+    { uid: existingUser.uid, login: existingUser.login, role: existingUser.role } as JwtPayload,
     JWT_SECRET,
     {
       expiresIn: '1h',
@@ -128,15 +131,15 @@ async function assignPlantToUser(userPlant: UserPlantDTO): Promise<UserPlantDTO>
   try {
     return await prisma.userPlant.create({
       data: {
-        userId: userPlant.userId,
-        plantId: userPlant.plantId,
+        userUid: utils.normalizeUid(userPlant.userUid),
+        plantUid: utils.normalizeUid(userPlant.plantUid),
         plantedAt: userPlant.plantedAt,
         lastWateredAt: userPlant.lastWateredAt,
       },
       select: {
-        id: true,
-        userId: true,
-        plantId: true,
+        uid: true,
+        userUid: true,
+        plantUid: true,
         plantedAt: true,
         lastWateredAt: true,
       },
@@ -144,7 +147,7 @@ async function assignPlantToUser(userPlant: UserPlantDTO): Promise<UserPlantDTO>
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
       throw new CustomError(
-        `Cannot assign plantId=${userPlant.plantId} to userId=${userPlant.userId}: related record does not exist`,
+        `Cannot assign plantUid=${userPlant.plantUid} to userUid=${userPlant.userUid}: related record does not exist`,
         400,
       );
     }

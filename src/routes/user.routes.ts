@@ -5,8 +5,8 @@ import { asyncHandler } from '../middleware/asyncHandler';
 import {
   CreateUserBody,
   LoginUserBody,
-  PlantAssignBody,
   PlantAssignParams,
+  PlantAssignBody,
   plantAssignParamsSchema,
   plantAssignSchema,
   userCreateSchema,
@@ -15,7 +15,7 @@ import {
   userLoginSchema,
 } from '../schemas/user';
 import { validate } from '../middleware/validate';
-import { RequestWithBody, RequestWithParams, RequestWithParamsAndBody } from '../types/express';
+import { RequestWithParamsAndBody, RequestWithBody, RequestWithParams } from '../types/express';
 
 const router = Router();
 
@@ -29,13 +29,13 @@ router.post(
   }),
 );
 
-// GET /users/:id
+// GET /users/:uid
 router.get(
-  '/:id',
+  '/:uid',
   authorize(),
   validate(userGetSchema, 'params'),
   asyncHandler(async (req: RequestWithParams<UserGetParams>, res: Response) => {
-    const user = await userService.getUser(req.params.id);
+    const user = await userService.getUser(req.params.uid);
     res.status(200).json(user);
   }),
 );
@@ -50,28 +50,28 @@ router.post(
   }),
 );
 
-// DELETE /users/:id
+// DELETE /users/:uid
 router.delete(
-  '/:id',
+  '/:uid',
   authorize(['ADMIN']),
   validate(userGetSchema, 'params'),
   asyncHandler(async (req: RequestWithParams<UserGetParams>, res: Response) => {
-    const deletedUser = await userService.deleteUser(req.params.id);
+    const deletedUser = await userService.deleteUser(req.params.uid);
     res.status(200).json(deletedUser);
   }),
 );
 
-// POST /users/:userId/plants
+// POST /users/:userUid/plants
 router.post(
-  '/:userId/plants',
+  '/:userUid/plants',
   authorize(),
   validate(plantAssignParamsSchema, 'params'),
   validate(plantAssignSchema, 'body'),
   asyncHandler(
     async (req: RequestWithParamsAndBody<PlantAssignParams, PlantAssignBody>, res: Response) => {
       const createdUserPlant = await userService.assignPlantToUser({
-        userId: req.params.userId,
-        plantId: req.body.plantId,
+        userUid: req.params.userUid,
+        plantUid: req.body.plantUid,
         plantedAt: req.body.plantedAt,
         lastWateredAt: req.body.lastWateredAt,
       });

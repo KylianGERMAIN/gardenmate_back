@@ -8,28 +8,48 @@ describe('validate middleware', () => {
 
   it('should call next() and attach parsed data when valid', () => {
     const schema = z.object({
-      id: z.string().transform(Number),
+      uid: z.string().uuid(),
     });
 
     const req = {
-      params: { id: '42' },
+      params: { uid: '2e1a1bce-9d34-43b0-a927-6fd239f28796' },
     } as unknown as Request;
 
     const next = jest.fn() as NextFunction;
 
     validate(schema, 'params')(req, res, next);
 
-    expect(req.params).toEqual({ id: 42 });
+    expect(req.params).toEqual({ uid: '2e1a1bce-9d34-43b0-a927-6fd239f28796' });
+    expect(next).toHaveBeenCalledWith();
+  });
+
+  it('should attach transformed data (e.g., normalize UUID casing)', () => {
+    const schema = z.object({
+      uid: z
+        .string()
+        .uuid()
+        .transform((value) => value.toLowerCase()),
+    });
+
+    const req = {
+      params: { uid: '2E1A1BCE-9D34-43B0-A927-6FD239F28796' },
+    } as unknown as Request;
+
+    const next = jest.fn() as NextFunction;
+
+    validate(schema, 'params')(req, res, next);
+
+    expect(req.params).toEqual({ uid: '2e1a1bce-9d34-43b0-a927-6fd239f28796' });
     expect(next).toHaveBeenCalledWith();
   });
 
   it('should call next with CustomError when invalid', () => {
     const schema = z.object({
-      id: z.number().min(1),
+      uid: z.string().uuid().min(1),
     });
 
     const req = {
-      params: { id: 'abc' },
+      params: { uid: 'not-a-uuid' },
     } as unknown as Request;
 
     const next = jest.fn() as NextFunction;

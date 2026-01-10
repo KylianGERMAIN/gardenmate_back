@@ -31,6 +31,14 @@ src/
 
 ---
 
+## Conventions API
+
+- Les ressources utilisent des `uid` en UUID v4 (ex. `/users/:uid`, `/plants/:uid`).
+- Les paramètres d'URL et payloads sont validés avec Zod (champ `uid` obligatoire).
+- Les réponses renvoient systématiquement le `uid` des entités pour les appels suivants.
+
+---
+
 ## Installation
 
 ### Prérequis

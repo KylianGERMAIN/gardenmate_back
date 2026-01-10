@@ -3,9 +3,10 @@ import { SunlightLevel } from '../generated/prisma/enums';
 import { prisma } from '../prisma';
 import { Plant, Prisma } from '../generated/prisma/client';
 import { PlantCreateBody, PlantGetQuery } from '../schemas/plant';
+import { utils } from '../utils/uid';
 
 export interface PlantDTO {
-  id: number;
+  uid: string;
   name: string;
   sunlightLevel: SunlightLevel;
 }
@@ -15,7 +16,7 @@ export interface PlantDTO {
  */
 function mapToPlantDTO(plant: Plant): PlantDTO {
   return {
-    id: plant.id,
+    uid: plant.uid,
     name: plant.name,
     sunlightLevel: plant.sunlightLevel,
   };
@@ -59,11 +60,13 @@ async function createPlant({ name, sunlightLevel }: PlantCreateBody): Promise<Pl
 }
 
 /**
- * Delete a plant by id
+ * Delete a plant by uid
  */
-async function deletePlant(plantId: number): Promise<PlantDTO> {
+async function deletePlant(plantUid: string): Promise<PlantDTO> {
   try {
-    const deletedPlant = await prisma.plant.delete({ where: { id: plantId } });
+    const deletedPlant = await prisma.plant.delete({
+      where: { uid: utils.normalizeUid(plantUid) },
+    });
     return mapToPlantDTO(deletedPlant);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
@@ -71,7 +74,7 @@ async function deletePlant(plantId: number): Promise<PlantDTO> {
     }
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
       throw new CustomError(
-        `Cannot delete plant id='${plantId}' because it is assigned to users`,
+        `Cannot delete plant uid='${plantUid}' because it is assigned to users`,
         409,
       );
     }
