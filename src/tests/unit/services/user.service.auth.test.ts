@@ -28,6 +28,10 @@ describe('userService: auth (mocked)', () => {
     process.env.REFRESH_JWT_SECRET = REFRESH_JWT_SECRET;
   });
 
+  afterAll(() => {
+    process.env = ORIGINAL_ENV;
+  });
+
   beforeEach(() => {
     process.env = { ...ORIGINAL_ENV };
     process.env.JWT_SECRET = JWT_SECRET;
@@ -68,7 +72,7 @@ describe('userService: auth (mocked)', () => {
           tokenType: constants.tokenTypes.access,
         },
         JWT_SECRET,
-        { expiresIn: '15m' },
+        { expiresIn: constants.tokenExpiries.access },
       );
       expect(jwt.sign).toHaveBeenNthCalledWith(
         2,
@@ -79,7 +83,7 @@ describe('userService: auth (mocked)', () => {
           tokenType: constants.tokenTypes.refresh,
         },
         REFRESH_JWT_SECRET,
-        { expiresIn: '30d' },
+        { expiresIn: constants.tokenExpiries.refresh },
       );
     });
 
@@ -165,7 +169,7 @@ describe('userService: auth (mocked)', () => {
           tokenType: constants.tokenTypes.access,
         },
         JWT_SECRET,
-        { expiresIn: '15m' },
+        { expiresIn: constants.tokenExpiries.access },
       );
       expect(jwt.sign).toHaveBeenNthCalledWith(
         2,
@@ -176,7 +180,7 @@ describe('userService: auth (mocked)', () => {
           tokenType: constants.tokenTypes.refresh,
         },
         REFRESH_JWT_SECRET,
-        { expiresIn: '30d' },
+        { expiresIn: constants.tokenExpiries.refresh },
       );
     });
 

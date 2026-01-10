@@ -135,7 +135,7 @@ async function authenticateUser(user: LoginUserBody): Promise<AuthTokens> {
       tokenType: constants.tokenTypes.access,
     } satisfies JwtPayload,
     JWT_SECRET,
-    { expiresIn: '15m' },
+    { expiresIn: constants.tokenExpiries.access },
   );
 
   const refreshToken = jwt.sign(
@@ -146,7 +146,7 @@ async function authenticateUser(user: LoginUserBody): Promise<AuthTokens> {
       tokenType: constants.tokenTypes.refresh,
     } satisfies JwtPayload,
     REFRESH_JWT_SECRET,
-    { expiresIn: '30d' },
+    { expiresIn: constants.tokenExpiries.refresh },
   );
 
   return { accessToken, refreshToken };
@@ -205,7 +205,7 @@ async function refreshTokens(refreshToken: string): Promise<AuthTokens> {
       tokenType: constants.tokenTypes.access,
     } satisfies JwtPayload,
     JWT_SECRET,
-    { expiresIn: '15m' },
+    { expiresIn: constants.tokenExpiries.access },
   );
 
   const newRefreshToken = jwt.sign(
@@ -216,7 +216,7 @@ async function refreshTokens(refreshToken: string): Promise<AuthTokens> {
       tokenType: constants.tokenTypes.refresh,
     } satisfies JwtPayload,
     REFRESH_JWT_SECRET,
-    { expiresIn: '30d' },
+    { expiresIn: constants.tokenExpiries.refresh },
   );
 
   return { accessToken, refreshToken: newRefreshToken };

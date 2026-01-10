@@ -11,12 +11,18 @@ jest.mock('jsonwebtoken', () => ({
 }));
 
 describe('middleware: authorize', () => {
+  const ORIGINAL_ENV = process.env;
+
   const res = {
     status: jest.fn().mockReturnThis(),
     json: jest.fn(),
   } as unknown as Response;
 
   const next = jest.fn() as NextFunction;
+
+  afterAll(() => {
+    process.env = ORIGINAL_ENV;
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
