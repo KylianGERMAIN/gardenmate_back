@@ -1,8 +1,8 @@
-import { errorHandler } from '../../middleware/errorHandler';
-import { CustomError } from '../../errors/CustomError';
+import { errorHandler } from '../../../middleware/errorHandler';
+import { CustomError } from '../../../errors/CustomError';
 import { Request, Response, NextFunction } from 'express';
 
-describe('errorHandler middleware', () => {
+describe('middleware: errorHandler', () => {
   let req: Partial<Request>;
   let res: Partial<Response>;
   let next: NextFunction;

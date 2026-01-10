@@ -1,9 +1,9 @@
-import { prisma } from '../prisma';
-import { UserPlantDTO, userService } from '../service/user.service';
-import { Prisma } from '../generated/prisma/client';
-import { CreateUserBody } from '../schemas/user';
+import { prisma } from '../../../prisma';
+import { UserPlantDTO, userService } from '../../../service/user.service';
+import { Prisma } from '../../../generated/prisma/client';
+import { CreateUserBody } from '../../../schemas/user';
 
-jest.mock('../prisma', () => ({
+jest.mock('../../../prisma', () => ({
   prisma: {
     user: {
       findUnique: jest.fn(),
@@ -16,7 +16,7 @@ jest.mock('../prisma', () => ({
   },
 }));
 
-describe('userService', () => {
+describe('userService (unit)', () => {
   afterEach(() => {
     jest.clearAllMocks();
   });
@@ -84,7 +84,7 @@ describe('userService', () => {
   });
 });
 
-describe('userService userPlant', () => {
+describe('userService: userPlant (unit)', () => {
   type PrismaUserPlantMock = { userPlant: { create: jest.Mock } };
   const prismaUserPlantCreateMock = (prisma as unknown as PrismaUserPlantMock).userPlant.create;
 

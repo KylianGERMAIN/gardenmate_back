@@ -107,7 +107,7 @@ async function authenticateUser(user: LoginUserBody): Promise<AuthTokens> {
     where: { login: user.login },
   });
   const JWT_SECRET = process.env.JWT_SECRET;
-  const REFRESH_JWT_SECRET = process.env.REFRESH_JWT_SECRET ?? JWT_SECRET;
+  const REFRESH_JWT_SECRET = process.env.REFRESH_JWT_SECRET;
 
   if (!existingUser) {
     throw new CustomError(`The user with login '${user.login}' doesn't exist`, 404);
@@ -125,9 +125,11 @@ async function authenticateUser(user: LoginUserBody): Promise<AuthTokens> {
     throw new CustomError('Refresh JWT secret is not defined', 500);
   }
 
+  const uid = utils.normalizeUid(existingUser.uid);
+
   const accessToken = jwt.sign(
     {
-      uid: existingUser.uid,
+      uid,
       login: existingUser.login,
       role: existingUser.role,
       tokenType: constants.tokenTypes.access,
@@ -138,7 +140,7 @@ async function authenticateUser(user: LoginUserBody): Promise<AuthTokens> {
 
   const refreshToken = jwt.sign(
     {
-      uid: existingUser.uid,
+      uid,
       login: existingUser.login,
       role: existingUser.role,
       tokenType: constants.tokenTypes.refresh,
@@ -155,7 +157,7 @@ async function authenticateUser(user: LoginUserBody): Promise<AuthTokens> {
  */
 async function refreshTokens(refreshToken: string): Promise<AuthTokens> {
   const JWT_SECRET = process.env.JWT_SECRET;
-  const REFRESH_JWT_SECRET = process.env.REFRESH_JWT_SECRET ?? JWT_SECRET;
+  const REFRESH_JWT_SECRET = process.env.REFRESH_JWT_SECRET;
   if (!JWT_SECRET) throw new CustomError('JWT secret is not defined', 500);
   if (!REFRESH_JWT_SECRET) throw new CustomError('Refresh JWT secret is not defined', 500);
 
@@ -167,8 +169,8 @@ async function refreshTokens(refreshToken: string): Promise<AuthTokens> {
   }
 
   const isRefreshJwtPayload = (value: unknown): value is JwtPayload => {
-    if (!value || typeof value !== 'object') return false;
-    const v = value as Record<string, unknown>;
+    if (!utils.isRecord(value)) return false;
+    const v = value;
     return (
       v.tokenType === constants.tokenTypes.refresh &&
       utils.isString(v.uid) &&

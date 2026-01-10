@@ -1,7 +1,7 @@
-import { RequestWithUser, authorize } from '../../middleware/authHandler';
+import { RequestWithUser, authorize } from '../../../middleware/authHandler';
 import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
-import { constants } from '../../constants/constants';
+import { constants } from '../../../constants/constants';
 
 jest.mock('jsonwebtoken', () => ({
   __esModule: true,
@@ -10,7 +10,7 @@ jest.mock('jsonwebtoken', () => ({
   },
 }));
 
-describe('authorize middleware', () => {
+describe('middleware: authorize', () => {
   const res = {
     status: jest.fn().mockReturnThis(),
     json: jest.fn(),

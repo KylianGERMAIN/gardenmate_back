@@ -1,9 +1,9 @@
-import { plantService } from '../service/plant.service';
-import { prisma } from '../prisma';
-import { SunlightLevel } from '../generated/prisma/enums';
-import { Prisma } from '../generated/prisma/client';
+import { plantService } from '../../../service/plant.service';
+import { prisma } from '../../../prisma';
+import { SunlightLevel } from '../../../generated/prisma/enums';
+import { Prisma } from '../../../generated/prisma/client';
 
-jest.mock('../prisma', () => ({
+jest.mock('../../../prisma', () => ({
   prisma: {
     plant: {
       findMany: jest.fn(),
@@ -13,7 +13,7 @@ jest.mock('../prisma', () => ({
   },
 }));
 
-describe('plantService - unit tests', () => {
+describe('plantService (unit)', () => {
   afterEach(() => jest.clearAllMocks());
 
   it('should call prisma.plant.findMany with correct filter', async () => {
