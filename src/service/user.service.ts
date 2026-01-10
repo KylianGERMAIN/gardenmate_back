@@ -185,14 +185,23 @@ async function refreshTokens(refreshToken: string): Promise<AuthTokens> {
 
   const decoded = decodedUnknown as JwtPayload;
 
-  // normalize uid to avoid casing mismatch if a token was created elsewhere
   const uid = utils.normalizeUid(decoded.uid);
+
+  // Re-check user state in DB (deleted user / role changes)
+  const dbUser = await prisma.user.findUnique({
+    where: { uid },
+    select: { uid: true, login: true, role: true },
+  });
+  if (!dbUser) {
+    // Treat as invalid refresh token to avoid user enumeration
+    throw new CustomError('Invalid refresh token', 401);
+  }
 
   const accessToken = jwt.sign(
     {
       uid,
-      login: decoded.login,
-      role: decoded.role,
+      login: dbUser.login,
+      role: dbUser.role,
       tokenType: constants.tokenTypes.access,
     } satisfies JwtPayload,
     JWT_SECRET,
@@ -202,8 +211,8 @@ async function refreshTokens(refreshToken: string): Promise<AuthTokens> {
   const newRefreshToken = jwt.sign(
     {
       uid,
-      login: decoded.login,
-      role: decoded.role,
+      login: dbUser.login,
+      role: dbUser.role,
       tokenType: constants.tokenTypes.refresh,
     } satisfies JwtPayload,
     REFRESH_JWT_SECRET,

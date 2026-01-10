@@ -21,8 +21,15 @@ jest.mock('jsonwebtoken');
 describe('userService: auth (mocked)', () => {
   const JWT_SECRET = 'test_secret';
   const REFRESH_JWT_SECRET = 'refresh_secret';
+  const ORIGINAL_ENV = process.env;
 
   beforeAll(() => {
+    process.env.JWT_SECRET = JWT_SECRET;
+    process.env.REFRESH_JWT_SECRET = REFRESH_JWT_SECRET;
+  });
+
+  beforeEach(() => {
+    process.env = { ...ORIGINAL_ENV };
     process.env.JWT_SECRET = JWT_SECRET;
     process.env.REFRESH_JWT_SECRET = REFRESH_JWT_SECRET;
   });
@@ -90,15 +97,50 @@ describe('userService: auth (mocked)', () => {
       const loginDto: LoginUserBody = { login: 'nonexistent', password: 'Admin123*' };
       await expect(userService.authenticateUser(loginDto)).rejects.toMatchObject({ code: 404 });
     });
+
+    it('should throw 500 when JWT_SECRET is missing', async () => {
+      delete process.env.JWT_SECRET;
+
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(testUser);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+      const loginDto: LoginUserBody = { login: 'testuser', password: 'Admin123*' };
+      await expect(userService.authenticateUser(loginDto)).rejects.toMatchObject({
+        code: 500,
+        message: 'JWT secret is not defined',
+      });
+    });
+
+    it('should throw 500 when REFRESH_JWT_SECRET is missing', async () => {
+      delete process.env.REFRESH_JWT_SECRET;
+
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(testUser);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+      const loginDto: LoginUserBody = { login: 'testuser', password: 'Admin123*' };
+      await expect(userService.authenticateUser(loginDto)).rejects.toMatchObject({
+        code: 500,
+        message: 'Refresh JWT secret is not defined',
+      });
+    });
   });
 
   describe('refreshTokens', () => {
     it('should exchange refresh token for new access + refresh tokens', async () => {
+      const rawUid = 'USER-UID-1';
+      const normalizedUid = rawUid.toLowerCase();
+
       (jwt.verify as jest.Mock).mockReturnValue({
-        uid: 'USER-UID-1',
+        uid: rawUid,
         login: 'testuser',
         role: 'USER',
         tokenType: constants.tokenTypes.refresh,
+      });
+
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        uid: normalizedUid,
+        login: 'testuser',
+        role: 'USER',
       });
 
       (jwt.sign as jest.Mock)
@@ -110,10 +152,14 @@ describe('userService: auth (mocked)', () => {
       expect(tokens).toEqual({ accessToken: 'newAccessToken', refreshToken: 'newRefreshToken' });
 
       expect(jwt.verify).toHaveBeenCalledWith('validRefresh', REFRESH_JWT_SECRET);
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { uid: normalizedUid },
+        select: { uid: true, login: true, role: true },
+      });
       expect(jwt.sign).toHaveBeenNthCalledWith(
         1,
         {
-          uid: 'user-uid-1',
+          uid: normalizedUid,
           login: 'testuser',
           role: 'USER',
           tokenType: constants.tokenTypes.access,
@@ -124,7 +170,7 @@ describe('userService: auth (mocked)', () => {
       expect(jwt.sign).toHaveBeenNthCalledWith(
         2,
         {
-          uid: 'user-uid-1',
+          uid: normalizedUid,
           login: 'testuser',
           role: 'USER',
           tokenType: constants.tokenTypes.refresh,
@@ -148,6 +194,39 @@ describe('userService: auth (mocked)', () => {
       });
 
       await expect(userService.refreshTokens('malformed')).rejects.toMatchObject({ code: 401 });
+    });
+
+    it('should throw 401 when user no longer exists', async () => {
+      (jwt.verify as jest.Mock).mockReturnValue({
+        uid: 'user-uid-1',
+        login: 'testuser',
+        role: 'USER',
+        tokenType: constants.tokenTypes.refresh,
+      });
+
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+
+      await expect(userService.refreshTokens('validRefresh')).rejects.toMatchObject({ code: 401 });
+    });
+
+    it('should throw 500 when JWT_SECRET is missing', async () => {
+      delete process.env.JWT_SECRET;
+
+      await expect(userService.refreshTokens('validRefresh')).rejects.toMatchObject({
+        code: 500,
+        message: 'JWT secret is not defined',
+      });
+      expect(jwt.verify).not.toHaveBeenCalled();
+    });
+
+    it('should throw 500 when REFRESH_JWT_SECRET is missing', async () => {
+      delete process.env.REFRESH_JWT_SECRET;
+
+      await expect(userService.refreshTokens('validRefresh')).rejects.toMatchObject({
+        code: 500,
+        message: 'Refresh JWT secret is not defined',
+      });
+      expect(jwt.verify).not.toHaveBeenCalled();
     });
   });
 });

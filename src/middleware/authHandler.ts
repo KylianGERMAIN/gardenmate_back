@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { utils } from '../utils/utils';
-import { TOKEN_TYPES } from '../constants/auth';
 import { constants } from '../constants/constants';
 
 const AUTH = {
@@ -35,7 +34,8 @@ function isJwtPayload(value: unknown): value is JwtPayload {
   if (!utils.isRecord(value)) return false;
   const v = value;
   const hasBasics = utils.isString(v.uid) && utils.isString(v.login) && utils.isString(v.role);
-  const hasType = v.tokenType === TOKEN_TYPES.access || v.tokenType === TOKEN_TYPES.refresh;
+  const hasType =
+    v.tokenType === constants.tokenTypes.access || v.tokenType === constants.tokenTypes.refresh;
   return hasBasics && hasType;
 }
 
@@ -81,7 +81,11 @@ export const authorize =
     const jwtSecret = process.env.JWT_SECRET;
     const requiredRoles = rolesNeeded && rolesNeeded.length > 0 ? rolesNeeded : undefined;
 
-    const decodedResult = decodeJwtPayloadFromAuthHeader(authHeader, jwtSecret, TOKEN_TYPES.access);
+    const decodedResult = decodeJwtPayloadFromAuthHeader(
+      authHeader,
+      jwtSecret,
+      constants.tokenTypes.access,
+    );
     if (!decodedResult.ok) return sendAuthError(res, decodedResult);
     const decoded = decodedResult.value;
 
