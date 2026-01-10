@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { SunlightLevel } from '../generated/prisma/enums';
+import { utils } from '../utils/uid';
 
 export const plantCreateSchema = z.object({
   name: z
@@ -25,6 +26,6 @@ export const plantGetSchema = z.object({
 export type PlantGetQuery = z.infer<typeof plantGetSchema>;
 
 export const plantDeleteSchema = z.object({
-  uid: z.string().uuid({ message: 'Invalid plant uid' }),
+  uid: z.string().uuid({ message: 'Invalid plant uid' }).transform(utils.normalizeUid),
 });
 export type PlantDeleteParams = z.infer<typeof plantDeleteSchema>;

@@ -3,6 +3,7 @@ import { SunlightLevel } from '../generated/prisma/enums';
 import { prisma } from '../prisma';
 import { Plant, Prisma } from '../generated/prisma/client';
 import { PlantCreateBody, PlantGetQuery } from '../schemas/plant';
+import { utils } from '../utils/uid';
 
 export interface PlantDTO {
   uid: string;
@@ -63,7 +64,9 @@ async function createPlant({ name, sunlightLevel }: PlantCreateBody): Promise<Pl
  */
 async function deletePlant(plantUid: string): Promise<PlantDTO> {
   try {
-    const deletedPlant = await prisma.plant.delete({ where: { uid: plantUid } });
+    const deletedPlant = await prisma.plant.delete({
+      where: { uid: utils.normalizeUid(plantUid) },
+    });
     return mapToPlantDTO(deletedPlant);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {

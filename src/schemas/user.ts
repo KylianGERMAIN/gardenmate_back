@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { utils } from '../utils/uid';
 
 export const userCreateSchema = z.object({
   login: z.string().min(5, 'Login must be at least 5 characters long'),
@@ -20,17 +21,17 @@ export const userLoginSchema = z.object({
 export type LoginUserBody = z.infer<typeof userLoginSchema>;
 
 export const userGetSchema = z.object({
-  uid: z.string().uuid({ message: 'Invalid user uid' }),
+  uid: z.string().uuid({ message: 'Invalid user uid' }).transform(utils.normalizeUid),
 });
 export type UserGetParams = z.infer<typeof userGetSchema>;
 
 export const plantAssignParamsSchema = z.object({
-  userUid: z.string().uuid('Invalid user uid'),
+  userUid: z.string().uuid({ message: 'Invalid user uid' }).transform(utils.normalizeUid),
 });
 export type PlantAssignParams = z.infer<typeof plantAssignParamsSchema>;
 
 export const plantAssignSchema = z.object({
-  plantUid: z.string().uuid('Invalid plant uid'),
+  plantUid: z.string().uuid({ message: 'Invalid plant uid' }).transform(utils.normalizeUid),
   plantedAt: z
     .string()
     .optional()

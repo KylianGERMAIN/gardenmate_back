@@ -6,6 +6,7 @@ import { Prisma } from '../generated/prisma/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { CreateUserBody, LoginUserBody } from '../schemas/user';
+import { utils } from '../utils/uid';
 
 export interface UserDTO {
   uid: string;
@@ -53,8 +54,9 @@ async function createUser(user: CreateUserBody): Promise<UserDTO> {
  * Get a user by uid
  */
 async function getUser(userUid: string): Promise<UserDTO> {
+  const normalizedUid = utils.normalizeUid(userUid);
   const existingUser = await prisma.user.findUnique({
-    where: { uid: userUid },
+    where: { uid: normalizedUid },
     select: {
       uid: true,
       login: true,
@@ -73,9 +75,10 @@ async function getUser(userUid: string): Promise<UserDTO> {
  * Delete a user by uid
  */
 async function deleteUser(userUid: string): Promise<UserDTO> {
+  const normalizedUid = utils.normalizeUid(userUid);
   try {
     const deletedUser = await prisma.user.delete({
-      where: { uid: userUid },
+      where: { uid: normalizedUid },
       select: { uid: true, login: true, role: true },
     });
     return deletedUser;
@@ -128,8 +131,8 @@ async function assignPlantToUser(userPlant: UserPlantDTO): Promise<UserPlantDTO>
   try {
     return await prisma.userPlant.create({
       data: {
-        userUid: userPlant.userUid,
-        plantUid: userPlant.plantUid,
+        userUid: utils.normalizeUid(userPlant.userUid),
+        plantUid: utils.normalizeUid(userPlant.plantUid),
         plantedAt: userPlant.plantedAt,
         lastWateredAt: userPlant.lastWateredAt,
       },

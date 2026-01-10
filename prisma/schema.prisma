@@ -20,7 +20,7 @@ enum SunlightLevel {
   SHADE
 }
 model Plant {
-  uid           String   @id @default(uuid())
+  uid           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name          String   @unique
   sunlightLevel SunlightLevel
   userPlants UserPlant[]
@@ -35,7 +35,7 @@ enum UserRole {
 }
 
 model User {
-  uid       String   @id @default(uuid())
+  uid       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   login     String   @unique
   password  String
   role      UserRole
@@ -45,11 +45,11 @@ model User {
 }
 
 model UserPlant {
-  uid            String   @id @default(uuid())
+  uid            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user           User     @relation(fields: [userUid], references: [uid])
-  userUid        String
+  userUid        String   @db.Uuid
   plant          Plant    @relation(fields: [plantUid], references: [uid])
-  plantUid       String
+  plantUid       String   @db.Uuid
   plantedAt      DateTime?
   lastWateredAt  DateTime?
 
