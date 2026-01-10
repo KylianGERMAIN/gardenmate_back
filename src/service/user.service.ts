@@ -6,7 +6,10 @@ import { Prisma } from '../generated/prisma/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { CreateUserBody, LoginUserBody } from '../schemas/user';
-import { utils } from '../utils/uid';
+import { utils } from '../utils/utils';
+import { constants } from '../constants/constants';
+
+type AuthTokens = { accessToken: string; refreshToken: string };
 
 export interface UserDTO {
   uid: string;
@@ -97,13 +100,14 @@ async function deleteUser(userUid: string): Promise<UserDTO> {
 }
 
 /**
- * Authenticate a user and return a JWT
+ * Authenticate a user and return access + refresh tokens
  */
-async function authenticateUser(user: LoginUserBody): Promise<string> {
+async function authenticateUser(user: LoginUserBody): Promise<AuthTokens> {
   const existingUser = await prisma.user.findUnique({
     where: { login: user.login },
   });
   const JWT_SECRET = process.env.JWT_SECRET;
+  const REFRESH_JWT_SECRET = process.env.REFRESH_JWT_SECRET ?? JWT_SECRET;
 
   if (!existingUser) {
     throw new CustomError(`The user with login '${user.login}' doesn't exist`, 404);
@@ -117,14 +121,94 @@ async function authenticateUser(user: LoginUserBody): Promise<string> {
   if (!JWT_SECRET) {
     throw new CustomError('JWT secret is not defined', 500);
   }
+  if (!REFRESH_JWT_SECRET) {
+    throw new CustomError('Refresh JWT secret is not defined', 500);
+  }
 
-  return jwt.sign(
-    { uid: existingUser.uid, login: existingUser.login, role: existingUser.role } as JwtPayload,
-    JWT_SECRET,
+  const accessToken = jwt.sign(
     {
-      expiresIn: '1h',
-    },
+      uid: existingUser.uid,
+      login: existingUser.login,
+      role: existingUser.role,
+      tokenType: constants.tokenTypes.access,
+    } satisfies JwtPayload,
+    JWT_SECRET,
+    { expiresIn: '15m' },
   );
+
+  const refreshToken = jwt.sign(
+    {
+      uid: existingUser.uid,
+      login: existingUser.login,
+      role: existingUser.role,
+      tokenType: constants.tokenTypes.refresh,
+    } satisfies JwtPayload,
+    REFRESH_JWT_SECRET,
+    { expiresIn: '30d' },
+  );
+
+  return { accessToken, refreshToken };
+}
+
+/**
+ * Exchange a valid refresh token for new access + refresh tokens (stateless).
+ */
+async function refreshTokens(refreshToken: string): Promise<AuthTokens> {
+  const JWT_SECRET = process.env.JWT_SECRET;
+  const REFRESH_JWT_SECRET = process.env.REFRESH_JWT_SECRET ?? JWT_SECRET;
+  if (!JWT_SECRET) throw new CustomError('JWT secret is not defined', 500);
+  if (!REFRESH_JWT_SECRET) throw new CustomError('Refresh JWT secret is not defined', 500);
+
+  let decodedUnknown: unknown;
+  try {
+    decodedUnknown = jwt.verify(refreshToken, REFRESH_JWT_SECRET);
+  } catch {
+    throw new CustomError('Invalid refresh token', 401);
+  }
+
+  const isRefreshJwtPayload = (value: unknown): value is JwtPayload => {
+    if (!value || typeof value !== 'object') return false;
+    const v = value as Record<string, unknown>;
+    return (
+      v.tokenType === constants.tokenTypes.refresh &&
+      utils.isString(v.uid) &&
+      utils.isString(v.login) &&
+      utils.isString(v.role)
+    );
+  };
+
+  if (!isRefreshJwtPayload(decodedUnknown)) {
+    throw new CustomError('Invalid refresh token', 401);
+  }
+
+  const decoded = decodedUnknown as JwtPayload;
+
+  // normalize uid to avoid casing mismatch if a token was created elsewhere
+  const uid = utils.normalizeUid(decoded.uid);
+
+  const accessToken = jwt.sign(
+    {
+      uid,
+      login: decoded.login,
+      role: decoded.role,
+      tokenType: constants.tokenTypes.access,
+    } satisfies JwtPayload,
+    JWT_SECRET,
+    { expiresIn: '15m' },
+  );
+
+  const newRefreshToken = jwt.sign(
+    {
+      uid,
+      login: decoded.login,
+      role: decoded.role,
+      tokenType: constants.tokenTypes.refresh,
+    } satisfies JwtPayload,
+    REFRESH_JWT_SECRET,
+    { expiresIn: '30d' },
+  );
+
+  return { accessToken, refreshToken: newRefreshToken };
 }
 
 async function assignPlantToUser(userPlant: UserPlantDTO): Promise<UserPlantDTO> {
@@ -163,6 +247,7 @@ export const userService = {
   getUser,
   deleteUser,
   authenticateUser,
+  refreshTokens,
 
   assignPlantToUser,
 };

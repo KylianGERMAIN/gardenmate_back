@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { utils } from '../utils/uid';
+import { utils } from '../utils/utils';
 
 export const userCreateSchema = z.object({
   login: z.string().min(5, 'Login must be at least 5 characters long'),
@@ -19,6 +19,11 @@ export const userLoginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 export type LoginUserBody = z.infer<typeof userLoginSchema>;
+
+export const userRefreshSchema = z.object({
+  refreshToken: z.string().min(1, 'Refresh token is required'),
+});
+export type RefreshTokenBody = z.infer<typeof userRefreshSchema>;
 
 export const userGetSchema = z.object({
   uid: z.string().uuid({ message: 'Invalid user uid' }).transform(utils.normalizeUid),

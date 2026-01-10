@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { SunlightLevel } from '../generated/prisma/enums';
-import { utils } from '../utils/uid';
+import { utils } from '../utils/utils';
 
 export const plantCreateSchema = z.object({
   name: z

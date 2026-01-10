@@ -1,3 +1,4 @@
+import { constants } from '../constants/constants';
 import { prisma } from '../prisma';
 import { LoginUserBody } from '../schemas/user';
 import { userService } from '../service/user.service';
@@ -19,8 +20,10 @@ jest.mock('jsonwebtoken');
 
 describe('userService - login (mocked)', () => {
   const JWT_SECRET = 'test_secret';
+  const REFRESH_JWT_SECRET = 'refresh_secret';
   beforeAll(() => {
     process.env.JWT_SECRET = JWT_SECRET;
+    process.env.REFRESH_JWT_SECRET = REFRESH_JWT_SECRET;
   });
 
   afterEach(() => {
@@ -34,23 +37,40 @@ describe('userService - login (mocked)', () => {
     role: 'USER',
   };
 
-  it('should return a token for valid login', async () => {
+  it('should return access + refresh tokens for valid login', async () => {
     (prisma.user.findUnique as jest.Mock).mockResolvedValue(testUser);
     (bcrypt.compare as jest.Mock).mockResolvedValue(true);
-    (jwt.sign as jest.Mock).mockReturnValue('fakeToken');
+    (jwt.sign as jest.Mock)
+      .mockReturnValueOnce('fakeAccessToken')
+      .mockReturnValueOnce('fakeRefreshToken');
 
     const loginDto: LoginUserBody = { login: 'testuser', password: 'Admin123*' };
-    const token = await userService.authenticateUser(loginDto);
+    const tokens = await userService.authenticateUser(loginDto);
 
-    expect(token).toBe('fakeToken');
+    expect(tokens).toEqual({ accessToken: 'fakeAccessToken', refreshToken: 'fakeRefreshToken' });
     expect(prisma.user.findUnique).toHaveBeenCalledWith({ where: { login: 'testuser' } });
     expect(bcrypt.compare).toHaveBeenCalledWith('Admin123*', 'hashedPassword');
-    expect(jwt.sign).toHaveBeenCalledWith(
-      { uid: 'user-uid-1', login: 'testuser', role: 'USER' },
-      JWT_SECRET,
+    expect(jwt.sign).toHaveBeenNthCalledWith(
+      1,
       {
-        expiresIn: '1h',
+        uid: 'user-uid-1',
+        login: 'testuser',
+        role: 'USER',
+        tokenType: constants.tokenTypes.access,
       },
+      JWT_SECRET,
+      { expiresIn: '15m' },
+    );
+    expect(jwt.sign).toHaveBeenNthCalledWith(
+      2,
+      {
+        uid: 'user-uid-1',
+        login: 'testuser',
+        role: 'USER',
+        tokenType: constants.tokenTypes.refresh,
+      },
+      REFRESH_JWT_SECRET,
+      { expiresIn: '30d' },
     );
   });
 
@@ -67,5 +87,76 @@ describe('userService - login (mocked)', () => {
 
     const loginDto: LoginUserBody = { login: 'nonexistent', password: 'Admin123*' };
     await expect(userService.authenticateUser(loginDto)).rejects.toMatchObject({ code: 404 });
+  });
+});
+
+describe('userService - refresh (mocked)', () => {
+  const JWT_SECRET = 'test_secret';
+  const REFRESH_JWT_SECRET = 'refresh_secret';
+
+  beforeAll(() => {
+    process.env.JWT_SECRET = JWT_SECRET;
+    process.env.REFRESH_JWT_SECRET = REFRESH_JWT_SECRET;
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should exchange refresh token for new access + refresh tokens', async () => {
+    (jwt.verify as jest.Mock).mockReturnValue({
+      uid: 'USER-UID-1',
+      login: 'testuser',
+      role: 'USER',
+      tokenType: constants.tokenTypes.refresh,
+    });
+
+    (jwt.sign as jest.Mock)
+      .mockReturnValueOnce('newAccessToken')
+      .mockReturnValueOnce('newRefreshToken');
+
+    const tokens = await userService.refreshTokens('validRefresh');
+
+    expect(tokens).toEqual({ accessToken: 'newAccessToken', refreshToken: 'newRefreshToken' });
+
+    expect(jwt.verify).toHaveBeenCalledWith('validRefresh', REFRESH_JWT_SECRET);
+    expect(jwt.sign).toHaveBeenNthCalledWith(
+      1,
+      {
+        uid: 'user-uid-1',
+        login: 'testuser',
+        role: 'USER',
+        tokenType: constants.tokenTypes.access,
+      },
+      JWT_SECRET,
+      { expiresIn: '15m' },
+    );
+    expect(jwt.sign).toHaveBeenNthCalledWith(
+      2,
+      {
+        uid: 'user-uid-1',
+        login: 'testuser',
+        role: 'USER',
+        tokenType: constants.tokenTypes.refresh,
+      },
+      REFRESH_JWT_SECRET,
+      { expiresIn: '30d' },
+    );
+  });
+
+  it('should throw 401 for invalid refresh token', async () => {
+    (jwt.verify as jest.Mock).mockImplementation(() => {
+      throw new Error('invalid');
+    });
+
+    await expect(userService.refreshTokens('bad')).rejects.toMatchObject({ code: 401 });
+  });
+
+  it('should throw 401 for malformed refresh token payload (missing uid/login/role)', async () => {
+    (jwt.verify as jest.Mock).mockReturnValue({
+      tokenType: constants.tokenTypes.refresh,
+    });
+
+    await expect(userService.refreshTokens('malformed')).rejects.toMatchObject({ code: 401 });
   });
 });
