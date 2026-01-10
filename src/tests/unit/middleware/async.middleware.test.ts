@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { asyncHandler } from '../../middleware/asyncHandler';
-import { CustomError } from '../../errors/CustomError';
+import { asyncHandler } from '../../../middleware/asyncHandler';
+import { CustomError } from '../../../errors/CustomError';
 
-describe('asyncHandler', () => {
+describe('middleware: asyncHandler', () => {
   let req: Partial<Request>;
   let res: Partial<Response>;
   let next: NextFunction;

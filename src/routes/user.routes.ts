@@ -4,7 +4,6 @@ import { userService } from '../service/user.service';
 import { asyncHandler } from '../middleware/asyncHandler';
 import {
   CreateUserBody,
-  LoginUserBody,
   PlantAssignParams,
   PlantAssignBody,
   plantAssignParamsSchema,
@@ -12,27 +11,15 @@ import {
   userCreateSchema,
   UserGetParams,
   userGetSchema,
-  userLoginSchema,
 } from '../schemas/user';
 import { validate } from '../middleware/validate';
 import { RequestWithParamsAndBody, RequestWithBody, RequestWithParams } from '../types/express';
 
 const router = Router();
-
-// POST /users/login
-router.post(
-  '/login',
-  validate(userLoginSchema, 'body'),
-  asyncHandler(async (req: RequestWithBody<LoginUserBody>, res: Response) => {
-    const token = await userService.authenticateUser(req.body);
-    res.status(200).json({ token });
-  }),
-);
-
 // GET /users/:uid
 router.get(
   '/:uid',
-  authorize(),
+  authorize(['ADMIN']),
   validate(userGetSchema, 'params'),
   asyncHandler(async (req: RequestWithParams<UserGetParams>, res: Response) => {
     const user = await userService.getUser(req.params.uid);

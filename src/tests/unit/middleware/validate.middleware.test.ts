@@ -1,9 +1,9 @@
-import { validate } from '../../middleware/validate';
+import { validate } from '../../../middleware/validate';
 import { z } from 'zod';
-import { CustomError } from '../../errors/CustomError';
+import { CustomError } from '../../../errors/CustomError';
 import { Request, Response, NextFunction } from 'express';
 
-describe('validate middleware', () => {
+describe('middleware: validate', () => {
   const res = {} as Response;
 
   it('should call next() and attach parsed data when valid', () => {

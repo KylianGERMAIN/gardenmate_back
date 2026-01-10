@@ -1,6 +1,7 @@
-import { RequestWithUser, authorize } from '../../middleware/authHandler';
+import { RequestWithUser, authorize } from '../../../middleware/authHandler';
 import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
+import { constants } from '../../../constants/constants';
 
 jest.mock('jsonwebtoken', () => ({
   __esModule: true,
@@ -9,13 +10,19 @@ jest.mock('jsonwebtoken', () => ({
   },
 }));
 
-describe('authorize middleware', () => {
+describe('middleware: authorize', () => {
+  const ORIGINAL_ENV = process.env;
+
   const res = {
     status: jest.fn().mockReturnThis(),
     json: jest.fn(),
   } as unknown as Response;
 
   const next = jest.fn() as NextFunction;
+
+  afterAll(() => {
+    process.env = ORIGINAL_ENV;
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -46,6 +53,7 @@ describe('authorize middleware', () => {
       uid: '2e1a1bce-9d34-43b0-a927-6fd239f28796',
       login: 'testuser',
       role: 'USER',
+      tokenType: constants.tokenTypes.access,
     });
 
     const req = {
@@ -57,5 +65,40 @@ describe('authorize middleware', () => {
 
     expect(next).toHaveBeenCalledWith();
     expect(res.status).not.toHaveBeenCalled();
+  });
+
+  it('should reject refresh token used as Bearer token', () => {
+    (jwt.verify as unknown as jest.Mock).mockReturnValue({
+      uid: '2e1a1bce-9d34-43b0-a927-6fd239f28796',
+      login: 'testuser',
+      role: 'USER',
+      tokenType: constants.tokenTypes.refresh,
+    });
+
+    const req = {
+      headers: { authorization: 'Bearer refresh-token' },
+      params: { uid: '2e1a1bce-9d34-43b0-a927-6fd239f28796' },
+    } as unknown as Request;
+
+    authorize()(req as RequestWithUser, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Unauthorized' });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('should return 500 when JWT_SECRET is missing', () => {
+    delete process.env.JWT_SECRET;
+
+    const req = {
+      headers: { authorization: 'Bearer access-token' },
+      params: { uid: '2e1a1bce-9d34-43b0-a927-6fd239f28796' },
+    } as unknown as Request;
+
+    authorize()(req as RequestWithUser, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({ message: 'JWT secret is not defined' });
+    expect(next).not.toHaveBeenCalled();
   });
 });

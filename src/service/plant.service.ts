@@ -3,7 +3,7 @@ import { SunlightLevel } from '../generated/prisma/enums';
 import { prisma } from '../prisma';
 import { Plant, Prisma } from '../generated/prisma/client';
 import { PlantCreateBody, PlantGetQuery } from '../schemas/plant';
-import { utils } from '../utils/uid';
+import { utils } from '../utils/utils';
 
 export interface PlantDTO {
   uid: string;
