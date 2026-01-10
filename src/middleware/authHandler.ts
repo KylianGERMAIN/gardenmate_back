@@ -32,10 +32,11 @@ export interface RequestWithUser extends Request {
 
 function isJwtPayload(value: unknown): value is JwtPayload {
   if (!utils.isRecord(value)) return false;
-  const v = value;
-  const hasBasics = utils.isString(v.uid) && utils.isString(v.login) && utils.isString(v.role);
+  const hasBasics =
+    utils.isString(value.uid) && utils.isString(value.login) && utils.isString(value.role);
   const hasType =
-    v.tokenType === constants.tokenTypes.access || v.tokenType === constants.tokenTypes.refresh;
+    value.tokenType === constants.tokenTypes.access ||
+    value.tokenType === constants.tokenTypes.refresh;
   return hasBasics && hasType;
 }
 

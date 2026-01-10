@@ -169,13 +169,15 @@ async function refreshTokens(refreshToken: string): Promise<AuthTokens> {
   }
 
   const isRefreshJwtPayload = (value: unknown): value is JwtPayload => {
-    if (!utils.isRecord(value)) return false;
-    const v = value;
+    if (!utils.isRecord(value)) {
+      return false;
+    }
+
     return (
-      v.tokenType === constants.tokenTypes.refresh &&
-      utils.isString(v.uid) &&
-      utils.isString(v.login) &&
-      utils.isString(v.role)
+      value.tokenType === constants.tokenTypes.refresh &&
+      utils.isString(value.uid) &&
+      utils.isString(value.login) &&
+      utils.isString(value.role)
     );
   };
 

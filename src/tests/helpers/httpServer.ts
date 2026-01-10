@@ -1,4 +1,5 @@
 import type { Server } from 'http';
+import { utils } from '../../utils/utils';
 
 type TestServer = {
   baseUrl: string;
@@ -15,7 +16,7 @@ export async function startTestServer(): Promise<TestServer> {
   await new Promise<void>((resolve) => server.once('listening', () => resolve()));
 
   const address = server.address();
-  if (!address || typeof address === 'string') throw new Error('Unexpected server address');
+  if (!address || utils.isString(address)) throw new Error('Unexpected server address');
 
   return {
     baseUrl: `http://127.0.0.1:${address.port}`,
