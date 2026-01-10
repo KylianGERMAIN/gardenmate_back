@@ -1,5 +1,5 @@
 import { CustomError } from '../errors/CustomError';
-import { UserRole } from '../generated/prisma/enums';
+import { SunlightLevel, UserRole } from '../generated/prisma/enums';
 import { JwtPayload } from '../middleware/authHandler';
 import { prisma } from '../prisma';
 import { Prisma } from '../generated/prisma/client';
@@ -23,6 +23,19 @@ export interface UserPlantDTO {
   plantUid: string;
   plantedAt?: Date | null;
   lastWateredAt?: Date | null;
+}
+
+export interface UserPlantDetailsDTO {
+  uid: string;
+  userUid: string;
+  plantUid: string;
+  plantedAt: Date | null;
+  lastWateredAt: Date | null;
+  plant: {
+    uid: string;
+    name: string;
+    sunlightLevel: SunlightLevel;
+  };
 }
 
 /**
@@ -255,6 +268,108 @@ async function assignPlantToUser(userPlant: UserPlantDTO): Promise<UserPlantDTO>
   }
 }
 
+async function listUserPlants(userUid: string): Promise<UserPlantDetailsDTO[]> {
+  const normalizedUserUid = utils.normalizeUid(userUid);
+  const userPlants = await prisma.userPlant.findMany({
+    where: { userUid: normalizedUserUid },
+    select: {
+      uid: true,
+      userUid: true,
+      plantUid: true,
+      plantedAt: true,
+      lastWateredAt: true,
+      plant: {
+        select: {
+          uid: true,
+          name: true,
+          sunlightLevel: true,
+        },
+      },
+    },
+  });
+
+  return userPlants;
+}
+
+async function assertUserPlantOwnedByUser(params: {
+  userUid: string;
+  userPlantUid: string;
+}): Promise<void> {
+  const normalizedUserUid = utils.normalizeUid(params.userUid);
+  const normalizedUserPlantUid = utils.normalizeUid(params.userPlantUid);
+
+  const existing = await prisma.userPlant.findUnique({
+    where: { uid: normalizedUserPlantUid },
+    select: { userUid: true },
+  });
+
+  if (!existing || utils.normalizeUid(existing.userUid) !== normalizedUserUid) {
+    // 404 to avoid leaking existence of other users' resources
+    throw new CustomError('User plant not found', 404);
+  }
+}
+
+async function updateUserPlant(params: {
+  userUid: string;
+  userPlantUid: string;
+  plantedAt?: Date | null;
+  lastWateredAt?: Date | null;
+}): Promise<UserPlantDTO> {
+  await assertUserPlantOwnedByUser({ userUid: params.userUid, userPlantUid: params.userPlantUid });
+
+  const normalizedUserPlantUid = utils.normalizeUid(params.userPlantUid);
+
+  const data: { plantedAt?: Date | null; lastWateredAt?: Date | null } = {};
+  if (params.plantedAt !== undefined) data.plantedAt = params.plantedAt;
+  if (params.lastWateredAt !== undefined) data.lastWateredAt = params.lastWateredAt;
+
+  try {
+    return await prisma.userPlant.update({
+      where: { uid: normalizedUserPlantUid },
+      data,
+      select: {
+        uid: true,
+        userUid: true,
+        plantUid: true,
+        plantedAt: true,
+        lastWateredAt: true,
+      },
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      throw new CustomError('User plant not found', 404);
+    }
+    throw error;
+  }
+}
+
+async function deleteUserPlant(params: {
+  userUid: string;
+  userPlantUid: string;
+}): Promise<UserPlantDTO> {
+  await assertUserPlantOwnedByUser({ userUid: params.userUid, userPlantUid: params.userPlantUid });
+
+  const normalizedUserPlantUid = utils.normalizeUid(params.userPlantUid);
+
+  try {
+    return await prisma.userPlant.delete({
+      where: { uid: normalizedUserPlantUid },
+      select: {
+        uid: true,
+        userUid: true,
+        plantUid: true,
+        plantedAt: true,
+        lastWateredAt: true,
+      },
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      throw new CustomError('User plant not found', 404);
+    }
+    throw error;
+  }
+}
+
 export const userService = {
   createUser,
   getUser,
@@ -263,4 +378,7 @@ export const userService = {
   refreshTokens,
 
   assignPlantToUser,
+  listUserPlants,
+  updateUserPlant,
+  deleteUserPlant,
 };

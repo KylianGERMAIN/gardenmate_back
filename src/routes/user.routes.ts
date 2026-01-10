@@ -8,6 +8,10 @@ import {
   PlantAssignBody,
   plantAssignParamsSchema,
   plantAssignSchema,
+  UserPlantUidParams,
+  userPlantUidParamsSchema,
+  UserPlantUpdateBody,
+  userPlantUpdateSchema,
   userCreateSchema,
   UserGetParams,
   userGetSchema,
@@ -65,6 +69,53 @@ router.post(
       res.status(201).json(createdUserPlant);
     },
   ),
+);
+
+// GET /users/:userUid/plants
+router.get(
+  '/:userUid/plants',
+  authorize(),
+  validate(plantAssignParamsSchema, 'params'),
+  asyncHandler(async (req: RequestWithParams<PlantAssignParams>, res: Response) => {
+    const userPlants = await userService.listUserPlants(req.params.userUid);
+    res.status(200).json(userPlants);
+  }),
+);
+
+// PATCH /users/:userUid/plants/:uid
+router.patch(
+  '/:userUid/plants/:uid',
+  authorize(),
+  validate(userPlantUidParamsSchema, 'params'),
+  validate(userPlantUpdateSchema, 'body'),
+  asyncHandler(
+    async (
+      req: RequestWithParamsAndBody<UserPlantUidParams, UserPlantUpdateBody>,
+      res: Response,
+    ) => {
+      const updated = await userService.updateUserPlant({
+        userUid: req.params.userUid,
+        userPlantUid: req.params.uid,
+        plantedAt: req.body.plantedAt,
+        lastWateredAt: req.body.lastWateredAt,
+      });
+      res.status(200).json(updated);
+    },
+  ),
+);
+
+// DELETE /users/:userUid/plants/:uid
+router.delete(
+  '/:userUid/plants/:uid',
+  authorize(),
+  validate(userPlantUidParamsSchema, 'params'),
+  asyncHandler(async (req: RequestWithParams<UserPlantUidParams>, res: Response) => {
+    const deleted = await userService.deleteUserPlant({
+      userUid: req.params.userUid,
+      userPlantUid: req.params.uid,
+    });
+    res.status(200).json(deleted);
+  }),
 );
 
 export default router;
