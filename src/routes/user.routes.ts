@@ -6,12 +6,11 @@ import {
   CreateUserBody,
   PlantAssignParams,
   PlantAssignBody,
-  plantAssignParamsSchema,
-  plantAssignSchema,
-  userCreateSchema,
+  UserPlantUidParams,
+  UserPlantUpdateBody,
   UserGetParams,
-  userGetSchema,
-} from '../schemas/user';
+  schemas,
+} from '../schemas';
 import { validate } from '../middleware/validate';
 import { RequestWithParamsAndBody, RequestWithBody, RequestWithParams } from '../types/express';
 
@@ -20,7 +19,7 @@ const router = Router();
 router.get(
   '/:uid',
   authorize(['ADMIN']),
-  validate(userGetSchema, 'params'),
+  validate(schemas.user.userGetSchema, 'params'),
   asyncHandler(async (req: RequestWithParams<UserGetParams>, res: Response) => {
     const user = await userService.getUser(req.params.uid);
     res.status(200).json(user);
@@ -30,7 +29,7 @@ router.get(
 // POST /users
 router.post(
   '/',
-  validate(userCreateSchema, 'body'),
+  validate(schemas.user.userCreateSchema, 'body'),
   asyncHandler(async (req: RequestWithBody<CreateUserBody>, res: Response) => {
     const createdUser = await userService.createUser(req.body);
     res.status(201).json(createdUser);
@@ -41,7 +40,7 @@ router.post(
 router.delete(
   '/:uid',
   authorize(['ADMIN']),
-  validate(userGetSchema, 'params'),
+  validate(schemas.user.userGetSchema, 'params'),
   asyncHandler(async (req: RequestWithParams<UserGetParams>, res: Response) => {
     const deletedUser = await userService.deleteUser(req.params.uid);
     res.status(200).json(deletedUser);
@@ -52,8 +51,8 @@ router.delete(
 router.post(
   '/:userUid/plants',
   authorize(),
-  validate(plantAssignParamsSchema, 'params'),
-  validate(plantAssignSchema, 'body'),
+  validate(schemas.userPlant.plantAssignParamsSchema, 'params'),
+  validate(schemas.userPlant.plantAssignSchema, 'body'),
   asyncHandler(
     async (req: RequestWithParamsAndBody<PlantAssignParams, PlantAssignBody>, res: Response) => {
       const createdUserPlant = await userService.assignPlantToUser({
@@ -65,6 +64,53 @@ router.post(
       res.status(201).json(createdUserPlant);
     },
   ),
+);
+
+// GET /users/:userUid/plants
+router.get(
+  '/:userUid/plants',
+  authorize(),
+  validate(schemas.userPlant.plantAssignParamsSchema, 'params'),
+  asyncHandler(async (req: RequestWithParams<PlantAssignParams>, res: Response) => {
+    const userPlants = await userService.listUserPlants(req.params.userUid);
+    res.status(200).json(userPlants);
+  }),
+);
+
+// PATCH /users/:userUid/plants/:uid
+router.patch(
+  '/:userUid/plants/:uid',
+  authorize(),
+  validate(schemas.userPlant.userPlantUidParamsSchema, 'params'),
+  validate(schemas.userPlant.userPlantUpdateSchema, 'body'),
+  asyncHandler(
+    async (
+      req: RequestWithParamsAndBody<UserPlantUidParams, UserPlantUpdateBody>,
+      res: Response,
+    ) => {
+      const updated = await userService.updateUserPlant({
+        userUid: req.params.userUid,
+        userPlantUid: req.params.uid,
+        plantedAt: req.body.plantedAt,
+        lastWateredAt: req.body.lastWateredAt,
+      });
+      res.status(200).json(updated);
+    },
+  ),
+);
+
+// DELETE /users/:userUid/plants/:uid
+router.delete(
+  '/:userUid/plants/:uid',
+  authorize(),
+  validate(schemas.userPlant.userPlantUidParamsSchema, 'params'),
+  asyncHandler(async (req: RequestWithParams<UserPlantUidParams>, res: Response) => {
+    const deleted = await userService.deleteUserPlant({
+      userUid: req.params.userUid,
+      userPlantUid: req.params.uid,
+    });
+    res.status(200).json(deleted);
+  }),
 );
 
 export default router;

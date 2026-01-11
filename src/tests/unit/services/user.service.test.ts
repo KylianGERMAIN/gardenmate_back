@@ -1,7 +1,8 @@
 import { prisma } from '../../../prisma';
 import { UserPlantDTO, userService } from '../../../service/user.service';
 import { Prisma } from '../../../generated/prisma/client';
-import { CreateUserBody } from '../../../schemas/user';
+import { CreateUserBody } from '../../../schemas';
+import { SunlightLevel } from '../../../generated/prisma/enums';
 
 jest.mock('../../../prisma', () => ({
   prisma: {
@@ -12,6 +13,10 @@ jest.mock('../../../prisma', () => ({
     },
     userPlant: {
       create: jest.fn(),
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
     },
   },
 }));
@@ -85,8 +90,21 @@ describe('userService (unit)', () => {
 });
 
 describe('userService: userPlant (unit)', () => {
-  type PrismaUserPlantMock = { userPlant: { create: jest.Mock } };
+  type PrismaUserPlantMock = {
+    userPlant: {
+      create: jest.Mock;
+      findMany: jest.Mock;
+      findUnique: jest.Mock;
+      update: jest.Mock;
+      delete: jest.Mock;
+    };
+  };
   const prismaUserPlantCreateMock = (prisma as unknown as PrismaUserPlantMock).userPlant.create;
+  const prismaUserPlantFindManyMock = (prisma as unknown as PrismaUserPlantMock).userPlant.findMany;
+  const prismaUserPlantFindUniqueMock = (prisma as unknown as PrismaUserPlantMock).userPlant
+    .findUnique;
+  const prismaUserPlantUpdateMock = (prisma as unknown as PrismaUserPlantMock).userPlant.update;
+  const prismaUserPlantDeleteMock = (prisma as unknown as PrismaUserPlantMock).userPlant.delete;
 
   afterEach(() => {
     jest.clearAllMocks();
@@ -141,5 +159,104 @@ describe('userService: userPlant (unit)', () => {
     prismaUserPlantCreateMock.mockRejectedValue(prismaError);
 
     await expect(userService.assignPlantToUser(testUserPlant)).rejects.toMatchObject({ code: 400 });
+  });
+
+  it('should list user plants with plant details', async () => {
+    prismaUserPlantFindManyMock.mockResolvedValue([
+      {
+        uid: 'user-plant-1',
+        userUid: 'user-uid-1',
+        plantUid: 'plant-uid-1',
+        plantedAt: null,
+        lastWateredAt: null,
+        plant: { uid: 'plant-uid-1', name: 'Tomato', sunlightLevel: SunlightLevel.FULL_SUN },
+      },
+    ]);
+
+    const result = await userService.listUserPlants('USER-UID-1');
+    expect(result).toHaveLength(1);
+    expect(prismaUserPlantFindManyMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userUid: 'user-uid-1' },
+        select: expect.any(Object),
+      }),
+    );
+  });
+
+  it('should update a userPlant only if owned by user', async () => {
+    prismaUserPlantFindUniqueMock.mockResolvedValue({ userUid: 'user-uid-1' });
+    prismaUserPlantUpdateMock.mockResolvedValue({
+      uid: 'user-plant-1',
+      userUid: 'user-uid-1',
+      plantUid: 'plant-uid-1',
+      plantedAt: null,
+      lastWateredAt: new Date('2026-01-10T00:00:00.000Z'),
+    });
+
+    const result = await userService.updateUserPlant({
+      userUid: 'USER-UID-1',
+      userPlantUid: 'USER-PLANT-1',
+      lastWateredAt: new Date('2026-01-10T00:00:00.000Z'),
+    });
+
+    expect(result.uid).toBe('user-plant-1');
+    expect(prismaUserPlantFindUniqueMock).toHaveBeenCalledWith({
+      where: { uid: 'user-plant-1' },
+      select: { userUid: true },
+    });
+    expect(prismaUserPlantUpdateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { uid: 'user-plant-1' },
+        data: { lastWateredAt: new Date('2026-01-10T00:00:00.000Z') },
+      }),
+    );
+  });
+
+  it('should return 404 when updating a userPlant not owned by user', async () => {
+    prismaUserPlantFindUniqueMock.mockResolvedValue({ userUid: 'someone-else' });
+
+    await expect(
+      userService.updateUserPlant({
+        userUid: 'user-uid-1',
+        userPlantUid: 'user-plant-1',
+        lastWateredAt: new Date(),
+      }),
+    ).rejects.toMatchObject({ code: 404 });
+
+    expect(prismaUserPlantUpdateMock).not.toHaveBeenCalled();
+  });
+
+  it('should delete a userPlant only if owned by user', async () => {
+    prismaUserPlantFindUniqueMock.mockResolvedValue({ userUid: 'user-uid-1' });
+    prismaUserPlantDeleteMock.mockResolvedValue({
+      uid: 'user-plant-1',
+      userUid: 'user-uid-1',
+      plantUid: 'plant-uid-1',
+      plantedAt: null,
+      lastWateredAt: null,
+    });
+
+    const result = await userService.deleteUserPlant({
+      userUid: 'user-uid-1',
+      userPlantUid: 'user-plant-1',
+    });
+
+    expect(result.uid).toBe('user-plant-1');
+    expect(prismaUserPlantDeleteMock).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { uid: 'user-plant-1' } }),
+    );
+  });
+
+  it('should return 404 when deleting a userPlant not owned by user', async () => {
+    prismaUserPlantFindUniqueMock.mockResolvedValue({ userUid: 'someone-else' });
+
+    await expect(
+      userService.deleteUserPlant({
+        userUid: 'user-uid-1',
+        userPlantUid: 'user-plant-1',
+      }),
+    ).rejects.toMatchObject({ code: 404 });
+
+    expect(prismaUserPlantDeleteMock).not.toHaveBeenCalled();
   });
 });
