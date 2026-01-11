@@ -10,6 +10,7 @@ const AUTH = {
     forbidden: 'Forbidden',
     jwtSecretMissing: 'JWT secret is not defined',
     ownerParamMissing: 'Owner parameter is not defined on this route',
+    rolesNeededMissing: 'Roles needed are not defined',
   },
 } as const;
 
@@ -144,8 +145,9 @@ export const authorize =
  * Authenticate request and require resource ownership based on a specific route param.
  * Example: authorizeOwner('userUid')
  */
-export const authorizeOwner =
-  (ownerParam: string) => (req: RequestWithUser, res: Response, next: NextFunction) => {
+export const authorizeOwner = (ownerParam: string) => {
+  if (!ownerParam) throw new Error(AUTH.messages.ownerParamMissing);
+  return (req: RequestWithUser, res: Response, next: NextFunction) => {
     const decodedResult = authorizeBase(req);
     if (!decodedResult.ok) return sendAuthError(res, decodedResult);
 
@@ -157,6 +159,7 @@ export const authorizeOwner =
 
     return next();
   };
+};
 
 /**
  * Authenticate request and allow access when either:
@@ -165,16 +168,14 @@ export const authorizeOwner =
  *
  * Example: authorizeRolesOrOwner(['ADMIN'], 'uid')
  */
-export const authorizeRolesOrOwner =
-  (rolesNeeded: string[], ownerParam: string) =>
-  (req: RequestWithUser, res: Response, next: NextFunction) => {
+export const authorizeRolesOrOwner = (rolesNeeded: string[], ownerParam: string) => {
+  if (!rolesNeeded || rolesNeeded.length === 0) throw new Error(AUTH.messages.rolesNeededMissing);
+  if (!ownerParam) throw new Error(AUTH.messages.ownerParamMissing);
+  return (req: RequestWithUser, res: Response, next: NextFunction) => {
     const decodedResult = authorizeBase(req);
     if (!decodedResult.ok) return sendAuthError(res, decodedResult);
 
-    const requiredRoles = rolesNeeded && rolesNeeded.length > 0 ? rolesNeeded : undefined;
-    if (!requiredRoles) return sendServerMisconfiguration(res, 'rolesNeeded must not be empty');
-
-    const hasAllowedRole = requiredRoles.includes(decodedResult.value.role);
+    const hasAllowedRole = rolesNeeded.includes(decodedResult.value.role);
     if (hasAllowedRole) return next();
 
     const ownerUid = getOwnerUidFromParam(req, ownerParam);
@@ -185,3 +186,4 @@ export const authorizeRolesOrOwner =
 
     return next();
   };
+};
