@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { authorize } from '../middleware/authHandler';
+import { authorizeOwner, authorizeRolesOrOwner } from '../middleware/authHandler';
 import { userService } from '../service/user.service';
 import { asyncHandler } from '../middleware/asyncHandler';
 import {
@@ -18,7 +18,7 @@ const router = Router();
 // GET /users/:uid
 router.get(
   '/:uid',
-  authorize(['ADMIN']),
+  authorizeRolesOrOwner(['ADMIN'], 'uid'),
   validate(schemas.user.userGetSchema, 'params'),
   asyncHandler(async (req: RequestWithParams<UserGetParams>, res: Response) => {
     const user = await userService.getUser(req.params.uid);
@@ -39,7 +39,7 @@ router.post(
 // DELETE /users/:uid
 router.delete(
   '/:uid',
-  authorize(['ADMIN']),
+  authorizeRolesOrOwner(['ADMIN'], 'uid'),
   validate(schemas.user.userGetSchema, 'params'),
   asyncHandler(async (req: RequestWithParams<UserGetParams>, res: Response) => {
     const deletedUser = await userService.deleteUser(req.params.uid);
@@ -50,7 +50,7 @@ router.delete(
 // POST /users/:userUid/plants
 router.post(
   '/:userUid/plants',
-  authorize(),
+  authorizeOwner('userUid'),
   validate(schemas.userPlant.plantAssignParamsSchema, 'params'),
   validate(schemas.userPlant.plantAssignSchema, 'body'),
   asyncHandler(
@@ -69,7 +69,7 @@ router.post(
 // GET /users/:userUid/plants
 router.get(
   '/:userUid/plants',
-  authorize(),
+  authorizeOwner('userUid'),
   validate(schemas.userPlant.plantAssignParamsSchema, 'params'),
   asyncHandler(async (req: RequestWithParams<PlantAssignParams>, res: Response) => {
     const userPlants = await userService.listUserPlants(req.params.userUid);
@@ -80,7 +80,7 @@ router.get(
 // PATCH /users/:userUid/plants/:uid
 router.patch(
   '/:userUid/plants/:uid',
-  authorize(),
+  authorizeOwner('userUid'),
   validate(schemas.userPlant.userPlantUidParamsSchema, 'params'),
   validate(schemas.userPlant.userPlantUpdateSchema, 'body'),
   asyncHandler(
@@ -102,7 +102,7 @@ router.patch(
 // DELETE /users/:userUid/plants/:uid
 router.delete(
   '/:userUid/plants/:uid',
-  authorize(),
+  authorizeOwner('userUid'),
   validate(schemas.userPlant.userPlantUidParamsSchema, 'params'),
   asyncHandler(async (req: RequestWithParams<UserPlantUidParams>, res: Response) => {
     const deleted = await userService.deleteUserPlant({

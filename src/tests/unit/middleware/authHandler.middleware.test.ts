@@ -1,4 +1,9 @@
-import { RequestWithUser, authorize } from '../../../middleware/authHandler';
+import {
+  RequestWithUser,
+  authorize,
+  authorizeOwner,
+  authorizeRolesOrOwner,
+} from '../../../middleware/authHandler';
 import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 import { constants } from '../../../constants/constants';
@@ -66,7 +71,50 @@ describe('middleware: authorize', () => {
       params: { uid: '2E1A1BCE-9D34-43B0-A927-6FD239F28796' },
     } as unknown as Request;
 
-    authorize()(req as RequestWithUser, res, next);
+    authorizeOwner('uid')(req as RequestWithUser, res, next);
+
+    expect(next).toHaveBeenCalledWith();
+    expect(res.status).not.toHaveBeenCalled();
+  });
+
+  it('should NOT allow owner to bypass role requirements when using authorize(roles)', () => {
+    (jwt.verify as unknown as jest.Mock).mockReturnValue({
+      uid: '2e1a1bce-9d34-43b0-a927-6fd239f28796',
+      login: 'testuser',
+      role: 'USER',
+      tokenType: constants.tokenTypes.access,
+    });
+
+    const req = {
+      headers: { authorization: 'Bearer valid' },
+      params: { uid: '2e1a1bce-9d34-43b0-a927-6fd239f28796' },
+    } as unknown as Request;
+
+    authorize(['ADMIN'])(req as RequestWithUser, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({
+      message: 'Forbidden',
+      code: 'FORBIDDEN',
+      requestId: 'test-request-id',
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('should allow access when role is missing but user is owner (roles OR owner)', () => {
+    (jwt.verify as unknown as jest.Mock).mockReturnValue({
+      uid: '2e1a1bce-9d34-43b0-a927-6fd239f28796',
+      login: 'testuser',
+      role: 'USER',
+      tokenType: constants.tokenTypes.access,
+    });
+
+    const req = {
+      headers: { authorization: 'Bearer valid' },
+      params: { uid: '2E1A1BCE-9D34-43B0-A927-6FD239F28796' },
+    } as unknown as Request;
+
+    authorizeRolesOrOwner(['ADMIN'], 'uid')(req as RequestWithUser, res, next);
 
     expect(next).toHaveBeenCalledWith();
     expect(res.status).not.toHaveBeenCalled();
