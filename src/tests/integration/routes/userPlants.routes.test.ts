@@ -60,7 +60,9 @@ describe('routes: /users/:userUid/plants', () => {
       });
 
       expect(res.status).toBe(401);
-      expect(await res.json()).toEqual({ message: 'Unauthorized' });
+      const body = await res.json();
+      expect(body).toMatchObject({ message: 'Unauthorized', code: 'UNAUTHORIZED' });
+      expect(body).toHaveProperty('requestId');
       expect(userService.listUserPlants).not.toHaveBeenCalled();
     });
 
@@ -76,7 +78,9 @@ describe('routes: /users/:userUid/plants', () => {
       });
 
       expect(res.status).toBe(403);
-      expect(await res.json()).toEqual({ message: 'Forbidden' });
+      const body = await res.json();
+      expect(body).toMatchObject({ message: 'Forbidden', code: 'FORBIDDEN' });
+      expect(body).toHaveProperty('requestId');
       expect(userService.listUserPlants).not.toHaveBeenCalled();
     });
 
@@ -92,7 +96,10 @@ describe('routes: /users/:userUid/plants', () => {
       });
 
       expect(res.status).toBe(400);
-      expect(await res.json()).toHaveProperty('message');
+      const body = await res.json();
+      expect(body).toMatchObject({ code: 'VALIDATION_ERROR' });
+      expect(body).toHaveProperty('message');
+      expect(body).toHaveProperty('requestId');
       expect(userService.listUserPlants).not.toHaveBeenCalled();
     });
 
@@ -153,7 +160,9 @@ describe('routes: /users/:userUid/plants', () => {
       });
 
       expect(res.status).toBe(500);
-      expect(await res.json()).toEqual({ message: 'Nope' });
+      const body = await res.json();
+      expect(body).toMatchObject({ message: 'Nope', code: 'INTERNAL_SERVER_ERROR' });
+      expect(body).toHaveProperty('requestId');
     });
   });
 
@@ -170,7 +179,9 @@ describe('routes: /users/:userUid/plants', () => {
       });
 
       expect(res.status).toBe(401);
-      expect(await res.json()).toEqual({ message: 'Unauthorized' });
+      const body = await res.json();
+      expect(body).toMatchObject({ message: 'Unauthorized', code: 'UNAUTHORIZED' });
+      expect(body).toHaveProperty('requestId');
       expect(userService.updateUserPlant).not.toHaveBeenCalled();
     });
 
@@ -188,7 +199,9 @@ describe('routes: /users/:userUid/plants', () => {
       });
 
       expect(res.status).toBe(403);
-      expect(await res.json()).toEqual({ message: 'Forbidden' });
+      const body = await res.json();
+      expect(body).toMatchObject({ message: 'Forbidden', code: 'FORBIDDEN' });
+      expect(body).toHaveProperty('requestId');
       expect(userService.updateUserPlant).not.toHaveBeenCalled();
     });
 
@@ -205,7 +218,10 @@ describe('routes: /users/:userUid/plants', () => {
       });
 
       expect(res.status).toBe(400);
-      expect(await res.json()).toHaveProperty('message');
+      const body = await res.json();
+      expect(body).toMatchObject({ code: 'VALIDATION_ERROR' });
+      expect(body).toHaveProperty('message');
+      expect(body).toHaveProperty('requestId');
       expect(userService.updateUserPlant).not.toHaveBeenCalled();
     });
 
@@ -222,7 +238,10 @@ describe('routes: /users/:userUid/plants', () => {
       });
 
       expect(res.status).toBe(400);
-      expect(await res.json()).toHaveProperty('message');
+      const body = await res.json();
+      expect(body).toMatchObject({ code: 'VALIDATION_ERROR' });
+      expect(body).toHaveProperty('message');
+      expect(body).toHaveProperty('requestId');
       expect(userService.updateUserPlant).not.toHaveBeenCalled();
     });
 
@@ -281,7 +300,9 @@ describe('routes: /users/:userUid/plants', () => {
       });
 
       expect(res.status).toBe(404);
-      expect(await res.json()).toEqual({ message: 'User plant not found' });
+      const body = await res.json();
+      expect(body).toMatchObject({ message: 'User plant not found', code: 'NOT_FOUND' });
+      expect(body).toHaveProperty('requestId');
     });
   });
 
@@ -296,7 +317,9 @@ describe('routes: /users/:userUid/plants', () => {
       });
 
       expect(res.status).toBe(401);
-      expect(await res.json()).toEqual({ message: 'Unauthorized' });
+      const body = await res.json();
+      expect(body).toMatchObject({ message: 'Unauthorized', code: 'UNAUTHORIZED' });
+      expect(body).toHaveProperty('requestId');
       expect(userService.deleteUserPlant).not.toHaveBeenCalled();
     });
 
@@ -312,7 +335,9 @@ describe('routes: /users/:userUid/plants', () => {
       });
 
       expect(res.status).toBe(403);
-      expect(await res.json()).toEqual({ message: 'Forbidden' });
+      const body = await res.json();
+      expect(body).toMatchObject({ message: 'Forbidden', code: 'FORBIDDEN' });
+      expect(body).toHaveProperty('requestId');
       expect(userService.deleteUserPlant).not.toHaveBeenCalled();
     });
 
@@ -327,7 +352,10 @@ describe('routes: /users/:userUid/plants', () => {
       });
 
       expect(res.status).toBe(400);
-      expect(await res.json()).toHaveProperty('message');
+      const body = await res.json();
+      expect(body).toMatchObject({ code: 'VALIDATION_ERROR' });
+      expect(body).toHaveProperty('message');
+      expect(body).toHaveProperty('requestId');
       expect(userService.deleteUserPlant).not.toHaveBeenCalled();
     });
 
@@ -380,7 +408,9 @@ describe('routes: /users/:userUid/plants', () => {
       });
 
       expect(res.status).toBe(404);
-      expect(await res.json()).toEqual({ message: 'User plant not found' });
+      const body = await res.json();
+      expect(body).toMatchObject({ message: 'User plant not found', code: 'NOT_FOUND' });
+      expect(body).toHaveProperty('requestId');
     });
   });
 });

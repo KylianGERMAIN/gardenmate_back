@@ -14,8 +14,22 @@ const AUTH = {
 
 type AuthResult<T> = { ok: true; value: T } | { ok: false; code: 401 | 500; message: string };
 
+type LocalsWithRequestId = { requestId?: string };
+
+function getRequestId(res: Response): string | undefined {
+  return (res.locals as LocalsWithRequestId | undefined)?.requestId;
+}
+
 function sendAuthError(res: Response, error: Extract<AuthResult<never>, { ok: false }>) {
-  return res.status(error.code).json({ message: error.message });
+  const requestId = getRequestId(res);
+  const errorCode =
+    error.code === 401
+      ? 'UNAUTHORIZED'
+      : error.message === AUTH.messages.jwtSecretMissing
+        ? 'SERVER_MISCONFIGURATION'
+        : 'INTERNAL_SERVER_ERROR';
+
+  return res.status(error.code).json({ message: error.message, code: errorCode, requestId });
 }
 
 export interface JwtPayload {
@@ -98,9 +112,17 @@ export const authorize =
 
     if (requiredRoles) {
       if (!hasAllowedRole && !isOwner)
-        return res.status(403).json({ message: AUTH.messages.forbidden });
+        return res.status(403).json({
+          message: AUTH.messages.forbidden,
+          code: 'FORBIDDEN',
+          requestId: getRequestId(res),
+        });
     } else if (ownerUid && !isOwner) {
-      return res.status(403).json({ message: AUTH.messages.forbidden });
+      return res.status(403).json({
+        message: AUTH.messages.forbidden,
+        code: 'FORBIDDEN',
+        requestId: getRequestId(res),
+      });
     }
 
     req.user = decoded;

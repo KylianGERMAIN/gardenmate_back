@@ -5,12 +5,14 @@ import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import plantRoutes from './routes/plant.routes';
 import { errorHandler } from './middleware/errorHandler';
+import { requestId } from './middleware/requestId';
 
 dotenv.config();
 
 const app = express();
 
 app.use(cors());
+app.use(requestId);
 app.use(express.json());
 
 app.use('/auth', authRoutes);
