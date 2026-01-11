@@ -9,6 +9,8 @@ const AUTH = {
     unauthorized: 'Unauthorized',
     forbidden: 'Forbidden',
     jwtSecretMissing: 'JWT secret is not defined',
+    ownerParamMissing: 'Owner parameter is not defined on this route',
+    rolesNeededMissing: 'Roles needed are not defined',
   },
 } as const;
 
@@ -84,47 +86,104 @@ function decodeJwtPayloadFromAuthHeader(
   return { ok: true, value: decodedUnknown };
 }
 
-function getResourceOwnerUid(req: Request): string | undefined {
+function getOwnerUidFromParam(req: Request, ownerParam: string): string | undefined {
   const params = req.params as Record<string, unknown> | undefined;
-  const raw = params?.userUid ?? params?.uid;
+  const raw = params?.[ownerParam];
   return utils.isString(raw) ? raw : undefined;
 }
 
+function sendForbidden(res: Response) {
+  return res.status(403).json({
+    message: AUTH.messages.forbidden,
+    code: 'FORBIDDEN',
+    requestId: getRequestId(res),
+  });
+}
+
+function sendServerMisconfiguration(res: Response, message: string) {
+  return res.status(500).json({
+    message,
+    code: 'SERVER_MISCONFIGURATION',
+    requestId: getRequestId(res),
+  });
+}
+
+function authorizeBase(req: RequestWithUser): AuthResult<JwtPayload> {
+  const authHeader = req.headers.authorization;
+  const jwtSecret = process.env.JWT_SECRET;
+
+  const decodedResult = decodeJwtPayloadFromAuthHeader(
+    authHeader,
+    jwtSecret,
+    constants.tokenTypes.access,
+  );
+  if (!decodedResult.ok) return decodedResult;
+
+  req.user = decodedResult.value;
+  return decodedResult;
+}
+
+/**
+ * Authenticate request using access token.
+ * - If roles are provided: checks role ONLY (no implicit "owner bypass").
+ * - If roles are omitted: authentication only.
+ */
 export const authorize =
   (rolesNeeded?: string[]) => (req: RequestWithUser, res: Response, next: NextFunction) => {
-    const authHeader = req.headers.authorization;
-    const jwtSecret = process.env.JWT_SECRET;
-    const requiredRoles = rolesNeeded && rolesNeeded.length > 0 ? rolesNeeded : undefined;
-
-    const decodedResult = decodeJwtPayloadFromAuthHeader(
-      authHeader,
-      jwtSecret,
-      constants.tokenTypes.access,
-    );
+    const decodedResult = authorizeBase(req);
     if (!decodedResult.ok) return sendAuthError(res, decodedResult);
-    const decoded = decodedResult.value;
 
-    const ownerUid = getResourceOwnerUid(req); // resource identifier passed in route params
-    const isOwner = ownerUid
-      ? utils.normalizeUid(decoded.uid) === utils.normalizeUid(ownerUid) // normalize to avoid casing mismatch across layers
-      : false;
-    const hasAllowedRole = requiredRoles ? requiredRoles.includes(decoded.role) : false;
-
-    if (requiredRoles) {
-      if (!hasAllowedRole && !isOwner)
-        return res.status(403).json({
-          message: AUTH.messages.forbidden,
-          code: 'FORBIDDEN',
-          requestId: getRequestId(res),
-        });
-    } else if (ownerUid && !isOwner) {
-      return res.status(403).json({
-        message: AUTH.messages.forbidden,
-        code: 'FORBIDDEN',
-        requestId: getRequestId(res),
-      });
+    const requiredRoles = rolesNeeded && rolesNeeded.length > 0 ? rolesNeeded : undefined;
+    if (requiredRoles && !requiredRoles.includes(decodedResult.value.role)) {
+      return sendForbidden(res);
     }
 
-    req.user = decoded;
     return next();
   };
+
+/**
+ * Authenticate request and require resource ownership based on a specific route param.
+ * Example: authorizeOwner('userUid')
+ */
+export const authorizeOwner = (ownerParam: string) => {
+  if (!ownerParam) throw new Error(AUTH.messages.ownerParamMissing);
+  return (req: RequestWithUser, res: Response, next: NextFunction) => {
+    const decodedResult = authorizeBase(req);
+    if (!decodedResult.ok) return sendAuthError(res, decodedResult);
+
+    const ownerUid = getOwnerUidFromParam(req, ownerParam);
+    if (!ownerUid) return sendServerMisconfiguration(res, AUTH.messages.ownerParamMissing);
+
+    const isOwner = utils.normalizeUid(decodedResult.value.uid) === utils.normalizeUid(ownerUid);
+    if (!isOwner) return sendForbidden(res);
+
+    return next();
+  };
+};
+
+/**
+ * Authenticate request and allow access when either:
+ * - user has one of the required roles, OR
+ * - user is the owner (based on a specific route param)
+ *
+ * Example: authorizeRolesOrOwner(['ADMIN'], 'uid')
+ */
+export const authorizeRolesOrOwner = (rolesNeeded: string[], ownerParam: string) => {
+  if (!rolesNeeded || rolesNeeded.length === 0) throw new Error(AUTH.messages.rolesNeededMissing);
+  if (!ownerParam) throw new Error(AUTH.messages.ownerParamMissing);
+  return (req: RequestWithUser, res: Response, next: NextFunction) => {
+    const decodedResult = authorizeBase(req);
+    if (!decodedResult.ok) return sendAuthError(res, decodedResult);
+
+    const hasAllowedRole = rolesNeeded.includes(decodedResult.value.role);
+    if (hasAllowedRole) return next();
+
+    const ownerUid = getOwnerUidFromParam(req, ownerParam);
+    if (!ownerUid) return sendServerMisconfiguration(res, AUTH.messages.ownerParamMissing);
+
+    const isOwner = utils.normalizeUid(decodedResult.value.uid) === utils.normalizeUid(ownerUid);
+    if (!isOwner) return sendForbidden(res);
+
+    return next();
+  };
+};
