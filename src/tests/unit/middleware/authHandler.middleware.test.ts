@@ -14,6 +14,7 @@ describe('middleware: authorize', () => {
   const ORIGINAL_ENV = process.env;
 
   const res = {
+    locals: { requestId: 'test-request-id' },
     status: jest.fn().mockReturnThis(),
     json: jest.fn(),
   } as unknown as Response;
@@ -44,7 +45,11 @@ describe('middleware: authorize', () => {
     authorize()(req as RequestWithUser, res, next);
 
     expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith({ message: 'Unauthorized' });
+    expect(res.json).toHaveBeenCalledWith({
+      message: 'Unauthorized',
+      code: 'UNAUTHORIZED',
+      requestId: 'test-request-id',
+    });
     expect(next).not.toHaveBeenCalled();
   });
 
@@ -83,7 +88,11 @@ describe('middleware: authorize', () => {
     authorize()(req as RequestWithUser, res, next);
 
     expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith({ message: 'Unauthorized' });
+    expect(res.json).toHaveBeenCalledWith({
+      message: 'Unauthorized',
+      code: 'UNAUTHORIZED',
+      requestId: 'test-request-id',
+    });
     expect(next).not.toHaveBeenCalled();
   });
 
@@ -98,7 +107,11 @@ describe('middleware: authorize', () => {
     authorize()(req as RequestWithUser, res, next);
 
     expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ message: 'JWT secret is not defined' });
+    expect(res.json).toHaveBeenCalledWith({
+      message: 'JWT secret is not defined',
+      code: 'SERVER_MISCONFIGURATION',
+      requestId: 'test-request-id',
+    });
     expect(next).not.toHaveBeenCalled();
   });
 });

@@ -36,7 +36,10 @@ describe('routes: /auth', () => {
       });
 
       expect(res.status).toBe(400);
-      expect(await res.json()).toHaveProperty('message');
+      const body = await res.json();
+      expect(body).toMatchObject({ code: 'VALIDATION_ERROR' });
+      expect(body).toHaveProperty('message');
+      expect(body).toHaveProperty('requestId');
       expect(userService.authenticateUser).not.toHaveBeenCalled();
     });
 
@@ -70,7 +73,9 @@ describe('routes: /auth', () => {
       });
 
       expect(res.status).toBe(401);
-      expect(await res.json()).toEqual({ message: 'Nope' });
+      const body = await res.json();
+      expect(body).toMatchObject({ message: 'Nope', code: 'UNAUTHORIZED' });
+      expect(body).toHaveProperty('requestId');
     });
   });
 
@@ -83,7 +88,10 @@ describe('routes: /auth', () => {
       });
 
       expect(res.status).toBe(400);
-      expect(await res.json()).toHaveProperty('message');
+      const body = await res.json();
+      expect(body).toMatchObject({ code: 'VALIDATION_ERROR' });
+      expect(body).toHaveProperty('message');
+      expect(body).toHaveProperty('requestId');
       expect(userService.refreshTokens).not.toHaveBeenCalled();
     });
 
@@ -114,7 +122,9 @@ describe('routes: /auth', () => {
       });
 
       expect(res.status).toBe(401);
-      expect(await res.json()).toEqual({ message: 'Bad token' });
+      const body = await res.json();
+      expect(body).toMatchObject({ message: 'Bad token', code: 'UNAUTHORIZED' });
+      expect(body).toHaveProperty('requestId');
     });
   });
 });
