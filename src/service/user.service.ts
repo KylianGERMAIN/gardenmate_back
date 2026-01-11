@@ -5,7 +5,7 @@ import { prisma } from '../prisma';
 import { Prisma } from '../generated/prisma/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { CreateUserBody, LoginUserBody } from '../schemas/user';
+import { CreateUserBody, LoginUserBody } from '../schemas';
 import { utils } from '../utils/utils';
 import { constants } from '../constants/constants';
 

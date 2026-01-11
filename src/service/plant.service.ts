@@ -2,7 +2,7 @@ import { CustomError } from '../errors/CustomError';
 import { SunlightLevel } from '../generated/prisma/enums';
 import { prisma } from '../prisma';
 import { Plant, Prisma } from '../generated/prisma/client';
-import { PlantCreateBody, PlantGetQuery } from '../schemas/plant';
+import { PlantCreateBody, PlantGetQuery } from '../schemas';
 import { utils } from '../utils/utils';
 
 export interface PlantDTO {

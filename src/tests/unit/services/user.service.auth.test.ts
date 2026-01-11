@@ -1,6 +1,6 @@
 import { constants } from '../../../constants/constants';
 import { prisma } from '../../../prisma';
-import { LoginUserBody } from '../../../schemas/user';
+import { LoginUserBody } from '../../../schemas';
 import { userService } from '../../../service/user.service';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';

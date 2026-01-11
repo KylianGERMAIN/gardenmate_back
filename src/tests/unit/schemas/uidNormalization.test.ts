@@ -1,5 +1,9 @@
-import { plantDeleteSchema } from '../../../schemas/plant';
-import { plantAssignParamsSchema, plantAssignSchema, userGetSchema } from '../../../schemas/user';
+import {
+  plantAssignParamsSchema,
+  plantAssignSchema,
+  plantDeleteSchema,
+  userGetSchema,
+} from '../../../schemas';
 
 describe('schema: uid normalization (lowercase)', () => {
   const upper = '2E1A1BCE-9D34-43B0-A927-6FD239F28796';

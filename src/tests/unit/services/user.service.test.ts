@@ -1,7 +1,7 @@
 import { prisma } from '../../../prisma';
 import { UserPlantDTO, userService } from '../../../service/user.service';
 import { Prisma } from '../../../generated/prisma/client';
-import { CreateUserBody } from '../../../schemas/user';
+import { CreateUserBody } from '../../../schemas';
 import { SunlightLevel } from '../../../generated/prisma/enums';
 
 jest.mock('../../../prisma', () => ({
@@ -245,5 +245,18 @@ describe('userService: userPlant (unit)', () => {
     expect(prismaUserPlantDeleteMock).toHaveBeenCalledWith(
       expect.objectContaining({ where: { uid: 'user-plant-1' } }),
     );
+  });
+
+  it('should return 404 when deleting a userPlant not owned by user', async () => {
+    prismaUserPlantFindUniqueMock.mockResolvedValue({ userUid: 'someone-else' });
+
+    await expect(
+      userService.deleteUserPlant({
+        userUid: 'user-uid-1',
+        userPlantUid: 'user-plant-1',
+      }),
+    ).rejects.toMatchObject({ code: 404 });
+
+    expect(prismaUserPlantDeleteMock).not.toHaveBeenCalled();
   });
 });
