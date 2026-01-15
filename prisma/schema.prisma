@@ -23,6 +23,7 @@ model Plant {
   uid           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name          String   @unique
   sunlightLevel SunlightLevel
+  wateringFrequency      Int?
   userPlants UserPlant[]
 
   @@map("plants")

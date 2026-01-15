@@ -35,6 +35,7 @@ export interface UserPlantDetailsDTO {
     uid: string;
     name: string;
     sunlightLevel: SunlightLevel;
+    wateringFrequency?: number | null;
   };
 }
 
@@ -370,6 +371,58 @@ async function deleteUserPlant(params: {
   }
 }
 
+async function getUserPlantNeedingWater(params: {
+  userUid: string;
+}): Promise<UserPlantDetailsDTO[]> {
+  const normalizedUserUid = utils.normalizeUid(params.userUid);
+
+  try {
+    const userPlants = await prisma.userPlant.findMany({
+      where: { userUid: normalizedUserUid },
+      select: {
+        uid: true,
+        userUid: true,
+        plantUid: true,
+        plantedAt: true,
+        lastWateredAt: true,
+        plant: {
+          select: {
+            uid: true,
+            name: true,
+            sunlightLevel: true,
+            wateringFrequency: true,
+          },
+        },
+      },
+    });
+
+    const plantsNeedingWater: UserPlantDetailsDTO[] =
+      userPlants
+        ?.map((plant) => {
+          if (!plant.lastWateredAt) {
+            return plant;
+          }
+
+          const nextWateringDate = new Date(plant.lastWateredAt);
+          nextWateringDate.setDate(
+            nextWateringDate.getDate() + (plant?.plant?.wateringFrequency || 0),
+          );
+
+          if (nextWateringDate <= new Date()) {
+            return plant;
+          }
+        })
+        .filter((plant) => plant !== undefined) || [];
+
+    return plantsNeedingWater;
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      throw new CustomError('User plant not found', 404);
+    }
+    throw error;
+  }
+}
+
 export const userService = {
   createUser,
   getUser,
@@ -381,4 +434,5 @@ export const userService = {
   listUserPlants,
   updateUserPlant,
   deleteUserPlant,
+  getUserPlantNeedingWater,
 };

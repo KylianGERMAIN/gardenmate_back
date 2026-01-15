@@ -113,4 +113,17 @@ router.delete(
   }),
 );
 
+// GET /users/:userUid/plants/needing-water
+router.get(
+  '/:userUid/plants/needing-water',
+  authorizeRolesOrOwner(['ADMIN'], 'userUid'),
+  validate(schemas.userPlant.plantAssignParamsSchema, 'params'),
+  asyncHandler(async (req: RequestWithParams<PlantAssignParams>, res: Response) => {
+    const needingWater = await userService.getUserPlantNeedingWater({
+      userUid: req.params.userUid,
+    });
+    res.status(200).json(needingWater);
+  }),
+);
+
 export default router;
